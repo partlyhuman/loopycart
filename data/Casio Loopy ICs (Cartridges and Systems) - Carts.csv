@@ -1,0 +1,26 @@
+"Game Name 
+(日本語)","Anime Land
+(あにめらんど)","HARIHARI Seal Paradise
+(HARIHARI シールパラダイス)","Dream Change: Kokin- chan's Fashion Party
+(ドリームチェンジ 小金ちゃんのファッションパーティー)","Caricature Artist
+(似顔絵アーティスト)","Bow-wow Puppy Love Story
+(わんわん愛情物語)","PC Collection
+(パソコン・コレクション)","I Want a Room in Loopy Town!
+(ルーピータウンのおへやがほしい!)"
+Casio Part Number,XK-401,XK-402,XK-403,XK-404,XK-501,XK-502,XK-504
+Copyright Date,1994,1995,1995,1995,1995,1996,1996
+Serial Number(s),I2002451,I2110080,I2060646,I2088012,I2138963,I2002069,I2000541
+Board Type,1 ROM,1 ROM,1 ROM,1 ROM,2 ROM,1 ROM Short,2 ROM
+Board Identifier 1,JCM632-AN1M B,JCM632-AN1M C,JCM632-AN1M C,JCM632-AN1M C,Z544-1,Z545-1,Z544-1
+Board Identifier 2,N04,N02,N02,N02,A240247-1,A240570-1,A240427B-1
+IC1,NEC JAPAN D23C16026GX C06 9523K7005,NEC JAPAN D23C16000WGX C16 9538K9211,NEC JAPAN D23C16000WGX C12 9533K9206,NEC JAPAN D23C16000WGX C13 9533K9216,n/a,NEC JAPAN D23C16000WGX C42 9625K7061,n/a
+IC2,9264LF10 JAPAN951903900,9264LF15 JAPAN953001000,9264LF15 JAPAN952603100,9264LF15 JAPAN952301300,n/a,JAPAN 9548 HM62256BLFP-10T 00102MM0,n/a
+IC3,n/a,n/a,n/a,n/a,n/a,9535H 74HC00A,n/a
+IC101,n/a,n/a,n/a,n/a,OKI Japan M6653A-457 5402301 V,n/a,n/a
+IC102,n/a,n/a,n/a,n/a,9532H 74HC273A ,n/a,n/a
+IC103,n/a,n/a,n/a,n/a,9264LF15 JAPAN953000700,n/a,9264LF15 JAPAN954300500
+IC104,n/a,n/a,n/a,n/a,NEC JAPAN D23C16000WGX C17 9536K7009,n/a,NEC JAPAN D23C16000WGX C48 9640K7017
+IC105,n/a,n/a,n/a,n/a,-,n/a,NEC JAPAN D23C8000XGX C17 9640K7015
+IC106,n/a,n/a,n/a,n/a,15218 5906,n/a,n/a
+IC107,n/a,n/a,n/a,n/a,7W139F 3H,n/a,7W139F 5K
+Notes,R4 and R6 are unpopulated,R4 and R6 are unpopulated,R4 and R6 are unpopulated,R4 and R6 are unpopulated,"R121, EF102, and IC105 are unpopulated","R3, R7, R8, and R11 are unpopulated","IC101, IC102, IC106, X101, and a ton of components on the bottom are unpopulated"
