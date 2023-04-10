@@ -5,4 +5,5 @@
   (lib (name "LOOPY_Flash_Macronix")(type "KiCad")(uri "${KIPRJMOD}/Libraries/ul_MX29LV320EBTI-70G/MX29LV.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_Flash_Microchip")(type "KiCad")(uri "${KIPRJMOD}/Libraries/ul_sst39vf1601-70-4c-eke/sst39.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_FRAM")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_FRAM.kicad_sym")(options "")(descr ""))
+  (lib (name "LOOPY_IO")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_IO/MCP23S17-E_SS.kicad_sym")(options "")(descr ""))
 )
