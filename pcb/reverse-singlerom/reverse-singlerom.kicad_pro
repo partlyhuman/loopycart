@@ -554,7 +554,7 @@
     "page_layout_descr_file": ""
   },
   "schematic": {
-    "annotate_start_num": 0,
+    "annotate_start_num": 10,
     "drawing": {
       "dashed_lines_dash_length_ratio": 12.0,
       "dashed_lines_gap_length_ratio": 3.0,
@@ -591,6 +591,10 @@
     [
       "5081f4fb-0c92-4cfc-8c52-39777c6d96ed",
       ""
+    ],
+    [
+      "56031e6c-c703-4598-8f97-a1d9ccc385d5",
+      "Maskrom Breakout"
     ]
   ],
   "text_variables": {}
