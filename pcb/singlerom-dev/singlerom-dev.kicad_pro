@@ -173,7 +173,7 @@
       ],
       "track_widths": [
         0.0,
-        0.2,
+        0.25,
         0.5,
         1.0
       ],
@@ -579,7 +579,7 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.15,
+        "clearance": 0.5,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -602,24 +602,24 @@
     "netclass_assignments": null,
     "netclass_patterns": [
       {
-        "netclass": "Power",
+        "netclass": "Default",
         "pattern": "GND"
       },
       {
-        "netclass": "Power",
+        "netclass": "Default",
         "pattern": "VCC"
       },
       {
-        "netclass": "Bus1",
+        "netclass": "Default",
         "pattern": "/A*"
       },
       {
-        "netclass": "Bus1",
+        "netclass": "Default",
         "pattern": "/D*"
       },
       {
-        "netclass": "Bus1",
-        "pattern": "/RAM*"
+        "netclass": "Default",
+        "pattern": "/R*"
       }
     ]
   },

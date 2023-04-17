@@ -1594,6 +1594,12 @@
   (junction (at 224.79 78.74) (diameter 0) (color 0 0 0 0)
     (uuid beb3286d-df05-4bb0-8b14-fa32dbad336a)
   )
+  (junction (at 128.27 50.8) (diameter 0) (color 0 0 0 0)
+    (uuid e466a102-7676-41d0-85dd-6cf33ca171b3)
+  )
+  (junction (at 128.27 43.18) (diameter 0) (color 0 0 0 0)
+    (uuid f42dd469-47c8-4860-9b79-5dc032d84560)
+  )
 
   (no_connect (at 262.89 31.75) (uuid 04adf120-882a-49e4-9ce3-68996079050d))
   (no_connect (at 245.11 72.39) (uuid 0d96e291-998f-4c0e-9274-a870cbacf72b))
@@ -1615,6 +1621,10 @@
   (wire (pts (xy 214.63 220.98) (xy 219.71 220.98))
     (stroke (width 0) (type default))
     (uuid 00b3e595-8738-4b8d-9417-fc5b442fd908)
+  )
+  (wire (pts (xy 120.65 48.26) (xy 111.76 48.26))
+    (stroke (width 0) (type default))
+    (uuid 026bd058-8d8d-438c-a875-ea7dff701690)
   )
   (wire (pts (xy 229.87 34.29) (xy 245.11 34.29))
     (stroke (width 0) (type default))
@@ -1656,6 +1666,10 @@
     (stroke (width 0) (type default))
     (uuid 2d301d30-7ed3-46c6-9176-93ec0fbbac08)
   )
+  (wire (pts (xy 120.65 50.8) (xy 120.65 48.26))
+    (stroke (width 0) (type default))
+    (uuid 2d8b18cc-9291-4691-8abb-9590202919a9)
+  )
   (wire (pts (xy 86.36 120.65) (xy 91.44 120.65))
     (stroke (width 0) (type default))
     (uuid 301c1128-6b56-45b3-87da-93e261fcf982)
@@ -1684,17 +1698,9 @@
     (stroke (width 0) (type default))
     (uuid 5118b5e1-6620-44e5-9c7d-3a51c4cd03a0)
   )
-  (wire (pts (xy 128.27 48.26) (xy 128.27 52.07))
-    (stroke (width 0) (type default))
-    (uuid 5212cedc-ecb9-44c0-b89a-c016b5b326ca)
-  )
   (wire (pts (xy 101.6 125.73) (xy 109.22 125.73))
     (stroke (width 0) (type default))
     (uuid 539f9028-f9ce-4253-96cc-f8464317d144)
-  )
-  (wire (pts (xy 151.13 148.59) (xy 144.78 148.59))
-    (stroke (width 0) (type default))
-    (uuid 551bd4e4-668a-4f7e-a56b-83717eadcf56)
   )
   (wire (pts (xy 82.55 118.11) (xy 82.55 121.92))
     (stroke (width 0) (type default))
@@ -1708,17 +1714,21 @@
     (stroke (width 0) (type default))
     (uuid 65ae3356-9e17-4b49-9453-f471a933ddc5)
   )
-  (wire (pts (xy 128.27 48.26) (xy 127 48.26))
+  (wire (pts (xy 128.27 50.8) (xy 125.73 50.8))
     (stroke (width 0) (type default))
     (uuid 66f82f72-fbd9-4a72-a2f0-06331c4a08b1)
   )
-  (wire (pts (xy 161.29 148.59) (xy 168.91 148.59))
+  (wire (pts (xy 144.78 148.59) (xy 168.91 148.59))
     (stroke (width 0) (type default))
     (uuid 69b8dc95-460c-47da-b352-fbf7e0b525be)
   )
   (wire (pts (xy 247.65 111.76) (xy 247.65 105.41))
     (stroke (width 0) (type default))
     (uuid 6cb3cb83-bf61-4f77-8174-e2ae57939512)
+  )
+  (wire (pts (xy 128.27 50.8) (xy 128.27 52.07))
+    (stroke (width 0) (type default))
+    (uuid 75627ed9-d36a-4979-82ce-78e0e001fff7)
   )
   (wire (pts (xy 26.67 168.91) (xy 44.45 168.91))
     (stroke (width 0) (type default))
@@ -1743,10 +1753,6 @@
   (wire (pts (xy 229.87 25.4) (xy 229.87 34.29))
     (stroke (width 0) (type default))
     (uuid 910f3208-fe7a-4249-bc0f-f199e025ef0c)
-  )
-  (wire (pts (xy 111.76 48.26) (xy 121.92 48.26))
-    (stroke (width 0) (type default))
-    (uuid 9345f2ed-f3b6-44ea-bbb6-4db4ded6b5ba)
   )
   (wire (pts (xy 101.6 118.11) (xy 109.22 118.11))
     (stroke (width 0) (type default))
@@ -10109,35 +10115,6 @@
     )
   )
 
-  (symbol (lib_id "Jumper:Jumper_2_Bridged") (at 156.21 148.59 0) (mirror y) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
-    (uuid 19a79b7b-c9d9-4bea-812d-0fef4844a32d)
-    (property "Reference" "JP5" (at 156.21 143.51 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "CE" (at 156.21 146.05 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm" (at 156.21 148.59 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 156.21 148.59 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Notes" "" (at 156.21 148.59 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (pin "1" (uuid 19c991e3-7f6d-4d59-8b41-325aef311329))
-    (pin "2" (uuid 359efc42-6dc2-4bf7-94be-fe0173127fbd))
-    (instances
-      (project "singlerom-dev"
-        (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "JP5") (unit 1)
-        )
-      )
-    )
-  )
-
   (symbol (lib_id "power:PWR_FLAG") (at 248.92 218.44 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 27ac1eb3-8777-43b4-b260-4041234a98e5)
@@ -10166,7 +10143,7 @@
   (symbol (lib_id "Device:C") (at 153.67 124.46 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 28bba631-d490-426a-b956-9ba04e96bb43)
-    (property "Reference" "C1" (at 157.48 123.825 0)
+    (property "Reference" "C2" (at 157.48 123.825 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Value" "C" (at 157.48 126.365 0)
@@ -10183,7 +10160,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "C1") (unit 1)
+          (reference "C2") (unit 1)
         )
       )
     )
@@ -10282,6 +10259,32 @@
     )
   )
 
+  (symbol (lib_id "Device:C") (at 128.27 46.99 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 3b55643d-cad7-4a96-8c60-001a69e7264b)
+    (property "Reference" "C1" (at 132.08 46.355 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Value" "C" (at 132.08 48.895 0)
+      (effects (font (size 1.27 1.27)) (justify left))
+    )
+    (property "Footprint" "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder" (at 129.2352 50.8 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (at 128.27 46.99 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid a8ecec2e-dac5-4f06-a8c9-b1b94ef949ba))
+    (pin "2" (uuid e221b507-1a20-4253-8113-852a1c43de9e))
+    (instances
+      (project "singlerom-dev"
+        (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
+          (reference "C1") (unit 1)
+        )
+      )
+    )
+  )
+
   (symbol (lib_id "Connector:TestPoint") (at 250.19 195.58 270) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 3cd7279e-91f3-4123-aa57-dc1afc12b41e)
@@ -10313,7 +10316,7 @@
   (symbol (lib_id "power:GND") (at 214.63 220.98 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 40244c25-8bb0-43ee-ba5d-b08346907965)
-    (property "Reference" "#PWR012" (at 214.63 227.33 0)
+    (property "Reference" "#PWR010" (at 214.63 227.33 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 214.63 226.06 0)
@@ -10329,7 +10332,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR012") (unit 1)
+          (reference "#PWR010") (unit 1)
         )
       )
     )
@@ -10338,7 +10341,7 @@
   (symbol (lib_id "power:VCC") (at 160.02 115.57 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 50a91c1b-4aba-4cb4-b4cd-c287e07517fb)
-    (property "Reference" "#PWR09" (at 160.02 119.38 0)
+    (property "Reference" "#PWR07" (at 160.02 119.38 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "VCC" (at 160.02 111.76 0)
@@ -10354,7 +10357,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR09") (unit 1)
+          (reference "#PWR07") (unit 1)
         )
       )
     )
@@ -10391,7 +10394,7 @@
   (symbol (lib_id "power:GND") (at 153.67 128.27 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 5137302c-19fa-4b3c-a4aa-7edc62462b02)
-    (property "Reference" "#PWR08" (at 153.67 134.62 0)
+    (property "Reference" "#PWR06" (at 153.67 134.62 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 153.67 133.35 0)
@@ -10407,7 +10410,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR08") (unit 1)
+          (reference "#PWR06") (unit 1)
         )
       )
     )
@@ -10499,31 +10502,6 @@
     )
   )
 
-  (symbol (lib_id "power:GND") (at 52.07 148.59 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
-    (uuid 5b805c2f-9986-4a83-ad26-3af84a399dd0)
-    (property "Reference" "#PWR03" (at 52.07 154.94 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "GND" (at 52.07 153.67 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (property "Footprint" "" (at 52.07 148.59 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "" (at 52.07 148.59 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 8ea5584c-9c68-41eb-98b4-9dde9f5a19ac))
-    (instances
-      (project "singlerom-dev"
-        (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR03") (unit 1)
-        )
-      )
-    )
-  )
-
   (symbol (lib_id "Connector:TestPoint") (at 210.82 190.5 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 5d149e66-bfb7-4c20-82aa-6c7ec1d87bba)
@@ -10583,7 +10561,7 @@
   (symbol (lib_id "power:VCC") (at 168.91 134.62 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 65509a4f-0b5a-4fdf-a194-9137ffa2f78d)
-    (property "Reference" "#PWR010" (at 168.91 138.43 0)
+    (property "Reference" "#PWR08" (at 168.91 138.43 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "VCC" (at 168.91 130.81 0)
@@ -10599,7 +10577,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR010") (unit 1)
+          (reference "#PWR08") (unit 1)
         )
       )
     )
@@ -10608,7 +10586,7 @@
   (symbol (lib_id "power:GND") (at 248.92 220.98 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 690fc868-6b72-469f-8a6a-2b2ebbfee3db)
-    (property "Reference" "#PWR015" (at 248.92 227.33 0)
+    (property "Reference" "#PWR013" (at 248.92 227.33 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 248.92 226.06 0)
@@ -10624,36 +10602,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR015") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "Device:R") (at 52.07 175.26 0) (unit 1)
-    (in_bom yes) (on_board no) (dnp yes) (fields_autoplaced)
-    (uuid 6f974ab3-5e39-4153-870a-1b4839b6f255)
-    (property "Reference" "R4" (at 54.61 174.625 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "1K" (at 54.61 177.165 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 50.292 175.26 90)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 52.07 175.26 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Notes" "" (at 52.07 175.26 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (pin "1" (uuid d807c157-a55e-4771-8606-e10b9a213ec5))
-    (pin "2" (uuid ce4dd7eb-30ad-4f00-8ac7-3dbfe00a788a))
-    (instances
-      (project "singlerom-dev"
-        (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "R4") (unit 1)
+          (reference "#PWR013") (unit 1)
         )
       )
     )
@@ -10662,7 +10611,7 @@
   (symbol (lib_id "Device:C_Small") (at 224.79 81.28 180) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 810a65f8-750f-4c21-b5ce-79836eba51ba)
-    (property "Reference" "C2" (at 227.33 80.6386 0)
+    (property "Reference" "C3" (at 227.33 80.6386 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Value" "C_Small" (at 227.33 83.1786 0)
@@ -10679,7 +10628,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "C2") (unit 1)
+          (reference "C3") (unit 1)
         )
       )
     )
@@ -10688,7 +10637,7 @@
   (symbol (lib_id "Device:R_Small") (at 168.91 140.97 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 877eec62-7366-443f-94d1-190d82014eea)
-    (property "Reference" "R7" (at 171.45 140.335 0)
+    (property "Reference" "R5" (at 171.45 140.335 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Value" "100K" (at 171.45 142.875 0)
@@ -10705,7 +10654,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "R7") (unit 1)
+          (reference "R5") (unit 1)
         )
       )
     )
@@ -10743,7 +10692,7 @@
   (symbol (lib_id "Device:R_Small") (at 82.55 124.46 180) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 902e0a3c-6ee9-449b-9fc7-c17274911a3d)
-    (property "Reference" "R5" (at 80.01 123.825 0)
+    (property "Reference" "R3" (at 80.01 123.825 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Value" "100K" (at 80.01 126.365 0)
@@ -10760,7 +10709,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "R5") (unit 1)
+          (reference "R3") (unit 1)
         )
       )
     )
@@ -10769,7 +10718,7 @@
   (symbol (lib_id "power:VCC") (at 128.27 39.37 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 93d39370-c405-4b1b-b0c5-490cc7c12baf)
-    (property "Reference" "#PWR06" (at 128.27 43.18 0)
+    (property "Reference" "#PWR04" (at 128.27 43.18 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "VCC" (at 128.27 35.56 0)
@@ -10785,7 +10734,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR06") (unit 1)
+          (reference "#PWR04") (unit 1)
         )
       )
     )
@@ -10848,7 +10797,7 @@
   (symbol (lib_id "power:VCC") (at 214.63 105.41 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid a4f12a6b-287e-4de9-aef2-1aa91e4e4f74)
-    (property "Reference" "#PWR011" (at 214.63 109.22 0)
+    (property "Reference" "#PWR09" (at 214.63 109.22 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "VCC" (at 214.63 101.6 0)
@@ -10864,7 +10813,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR011") (unit 1)
+          (reference "#PWR09") (unit 1)
         )
       )
     )
@@ -10873,7 +10822,7 @@
   (symbol (lib_id "power:GND") (at 224.79 83.82 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid a575444b-0243-4918-89e4-55c4df128c78)
-    (property "Reference" "#PWR013" (at 224.79 90.17 0)
+    (property "Reference" "#PWR011" (at 224.79 90.17 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 224.79 88.9 0)
@@ -10889,7 +10838,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR013") (unit 1)
+          (reference "#PWR011") (unit 1)
         )
       )
     )
@@ -10898,7 +10847,7 @@
   (symbol (lib_id "power:VCC") (at 247.65 105.41 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid a973a248-14eb-4805-9794-771c1a241221)
-    (property "Reference" "#PWR014" (at 247.65 109.22 0)
+    (property "Reference" "#PWR012" (at 247.65 109.22 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "VCC" (at 247.65 101.6 0)
@@ -10914,7 +10863,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR014") (unit 1)
+          (reference "#PWR012") (unit 1)
         )
       )
     )
@@ -11004,7 +10953,7 @@
   (symbol (lib_id "power:VCC") (at 86.36 137.16 180) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid b7196797-2cd2-46bc-8a02-b0f3563092f3)
-    (property "Reference" "#PWR05" (at 86.36 133.35 0)
+    (property "Reference" "#PWR03" (at 86.36 133.35 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "VCC" (at 86.36 140.97 0)
@@ -11020,7 +10969,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR05") (unit 1)
+          (reference "#PWR03") (unit 1)
         )
       )
     )
@@ -11192,19 +11141,19 @@
     )
   )
 
-  (symbol (lib_id "Device:R_Small") (at 124.46 48.26 90) (unit 1)
+  (symbol (lib_id "Device:R_Small") (at 123.19 50.8 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid db8733b8-ffa1-4c0b-9d79-5ae2754d62e5)
-    (property "Reference" "R6" (at 124.46 45.72 90)
+    (property "Reference" "R4" (at 123.19 48.26 90)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Value" "100K" (at 124.46 50.8 90)
+    (property "Value" "100K" (at 123.19 53.34 90)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 124.46 48.26 0)
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 123.19 50.8 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "~" (at 124.46 48.26 0)
+    (property "Datasheet" "~" (at 123.19 50.8 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 275f4dd8-7c0c-4bdb-83c2-21fb9218fab1))
@@ -11212,7 +11161,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "R6") (unit 1)
+          (reference "R4") (unit 1)
         )
       )
     )
@@ -11221,7 +11170,7 @@
   (symbol (lib_id "power:GND") (at 128.27 52.07 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid ec5fa161-0090-4218-ad52-72f05cca15fb)
-    (property "Reference" "#PWR07" (at 128.27 58.42 0)
+    (property "Reference" "#PWR05" (at 128.27 58.42 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 128.27 57.15 0)
@@ -11237,32 +11186,7 @@
     (instances
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR07") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "power:GND") (at 52.07 179.07 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
-    (uuid ecb6aa42-64d9-4f98-876b-b03aa651985e)
-    (property "Reference" "#PWR04" (at 52.07 185.42 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "GND" (at 52.07 184.15 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (property "Footprint" "" (at 52.07 179.07 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "" (at 52.07 179.07 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 9a591620-60ba-4a5e-9342-2ca8b6699637))
-    (instances
-      (project "singlerom-dev"
-        (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "#PWR04") (unit 1)
+          (reference "#PWR05") (unit 1)
         )
       )
     )
@@ -11319,35 +11243,6 @@
       (project "singlerom-dev"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
           (reference "TP2") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "Device:R") (at 52.07 144.78 0) (unit 1)
-    (in_bom yes) (on_board no) (dnp yes) (fields_autoplaced)
-    (uuid f4d166eb-5616-4e98-aa19-2e5e103c1d3a)
-    (property "Reference" "R3" (at 54.61 144.145 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "1K" (at 54.61 146.685 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 50.292 144.78 90)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 52.07 144.78 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Notes" "" (at 52.07 144.78 0)
-      (effects (font (size 1.27 1.27)))
-    )
-    (pin "1" (uuid 2271ae2a-7d96-495d-95cd-01e266841ea3))
-    (pin "2" (uuid 91dd391e-73d4-4c67-86de-a1472acd2757))
-    (instances
-      (project "singlerom-dev"
-        (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
-          (reference "R3") (unit 1)
         )
       )
     )
