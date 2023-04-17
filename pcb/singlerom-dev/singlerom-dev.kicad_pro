@@ -610,15 +610,15 @@
         "pattern": "VCC"
       },
       {
-        "netclass": "Bus2",
+        "netclass": "Bus1",
         "pattern": "/A*"
       },
       {
-        "netclass": "Bus2",
+        "netclass": "Bus1",
         "pattern": "/D*"
       },
       {
-        "netclass": "Bus2",
+        "netclass": "Bus1",
         "pattern": "/RAM*"
       }
     ]
