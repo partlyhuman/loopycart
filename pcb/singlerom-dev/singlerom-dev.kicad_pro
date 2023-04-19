@@ -175,6 +175,7 @@
         0.0,
         0.25,
         0.5,
+        0.75,
         1.0
       ],
       "via_dimensions": [
@@ -579,7 +580,7 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.5,
+        "clearance": 0.35,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -602,11 +603,11 @@
     "netclass_assignments": null,
     "netclass_patterns": [
       {
-        "netclass": "Default",
+        "netclass": "Power",
         "pattern": "GND"
       },
       {
-        "netclass": "Default",
+        "netclass": "Power",
         "pattern": "VCC"
       },
       {
@@ -620,6 +621,10 @@
       {
         "netclass": "Default",
         "pattern": "/R*"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "+*"
       }
     ]
   },
