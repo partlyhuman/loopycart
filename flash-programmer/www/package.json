@@ -1,0 +1,23 @@
+{
+  "name": "loopycart-flash-programmer-www",
+  "version": "0.0.0",
+  "description": "WebUSB interface to flash programmer",
+  "scripts": {
+    "start": "parcel src/index.html",
+    "build": "parcel build src/index.html",
+    "publish": "surge dist/ loopycart.surge.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/partlyhuman/loopycart.git"
+  },
+  "author": "Roger Braunstein",
+  "license": "MIT",
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.8.3",
+    "parcel": "^2.8.3"
+  },
+  "browserslist": [
+    "last 2 Chrome versions"
+  ]
+}

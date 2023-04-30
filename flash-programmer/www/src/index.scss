@@ -1,0 +1,18 @@
+body {
+  font-family: 'Roboto Slab', serif;
+}
+
+.lines-body {
+  font-family: monospace;
+}
+
+.line {
+  word-wrap: break-word;
+  overflow: hidden;
+  width: 100%;
+}
+
+input, button {
+  display: block;
+  margin: 1em 0;
+}

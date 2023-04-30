@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Loopy programmer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.scss" />
+</head>
+<body>
+
+
+<div class="main-content">
+    <h1>Loopycart!</h1>
+    <div class="connect-container">
+        <button id="connect" class="button black">Connect</button>
+        <span id="status"></span>
+    </div>
+    <input class="flash-upload" type="file">
+    <button class="flash-erase button">Erase</button>
+    <button class="flash-dump button">Dump</button>
+
+    <div class="container">
+        <div class="receiver">
+            <div class="lines-header">Log</div>
+            <button class="cls button">Clear</button>
+            <div class="lines-body">
+                <div id="receiver_lines" class="lines"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="module" src="index.js"></script>
+
+</body>
+</html>
