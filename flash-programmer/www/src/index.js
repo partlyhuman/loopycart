@@ -3,17 +3,17 @@ import {Serial} from './serial';
 const textDecoder = new TextDecoder();
 
 const $ = document.querySelector.bind(document);
-const $connectButton = $("#connect");
+const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
 let port = null;
 
 function serialEcho(data) {
-    console.log(textDecoder.decode(data));
-    appendLines('receiver_lines', textDecoder.decode(data));
+    let str = textDecoder.decode(data);
+    appendLines('receiver_lines', str);
 }
 
 function addLine(linesId, text) {
-    var senderLine = document.createElement("div");
+    var senderLine = document.createElement('div');
     senderLine.className = 'line';
     var textnode = document.createTextNode(text);
     senderLine.appendChild(textnode);
@@ -37,18 +37,16 @@ function appendLines(linesId, text) {
     }
 }
 
-function connect() {
-    port.connect().then(() => {
+async function connect() {
+    try {
+        await port.connect();
         $statusDisplay.textContent = '';
         $connectButton.textContent = 'Disconnect';
-
         port.onReceive = serialEcho;
-        port.onReceiveError = error => {
-            console.error(error);
-        };
-    }, error => {
+        port.onReceiveError = error => console.error(error);
+    } catch (error) {
         $statusDisplay.textContent = error;
-    });
+    }
 }
 
 $connectButton.addEventListener('click', () => {
@@ -60,7 +58,7 @@ $connectButton.addEventListener('click', () => {
     } else {
         Serial.requestPort().then(selectedPort => {
             port = selectedPort;
-            connect();
+            connect().then();
         }).catch(error => {
             $statusDisplay.textContent = error;
         });
@@ -84,15 +82,11 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
         return;
     }
     console.log('UPLOADING!');
-    // typed array with file contents
     const buffer = new Uint16Array(await files[0].arrayBuffer());
-    console.log(buffer);
 
     // Cheap way to block this off
     const BLOCKSIZE = 64;
     port.send(`P${buffer.length}${'\r'.repeat(BLOCKSIZE)}`.substring(0, BLOCKSIZE));
-
-    console.log('here goes the buffer');
     port.send(buffer);
 });
 
@@ -105,11 +99,11 @@ $('.flash-download').addEventListener('click', () => {
     // TODO dynamic size
     $('.dump-file-link').innerHTML = '';
 
-    const expectedWords = 0x400;
+    // const expectedWords = 1 << 20; // full 2mb
+    const expectedWords = 0x2000;
     // For sanity, we write the bytes in the order we get them; endianness is set on the platform / data
     const dumpBuffer = new ArrayBuffer(expectedWords * 2);
     let addr = 0;
-    port.onReceive = null;
     port.onReceive = (data) => {
         const dumpView = new Uint8Array(dumpBuffer, addr, data.byteLength);
         const packetView = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
@@ -118,14 +112,13 @@ $('.flash-download').addEventListener('click', () => {
         if (addr >= expectedWords) {
             console.log('OK');
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([ dumpBuffer ], { type: 'application/octet-stream' }));
+            a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
             a.download = 'loopy.bin';
             a.innerText = 'Download dump';
             // $('.dump-file-link').appendChild(a);
             a.click();
 
             port.onReceive = serialEcho;
-            return;
         }
     };
     port.send('D\r');

@@ -120,7 +120,8 @@ void echo_all(const char* buf, uint32_t count) {
 }
 
 void flashErase() {
-  // The Chip Erase operation is used erase all the data within the memory array. All memory cells containing a "0" will be returned to the erased state of "1". This operation requires 6 write cycles to initiate the action. The first two cycles are "unlock" cycles, the third is a configuration cycle, the fourth and fifth are also "unlock" cycles, and the sixth cycle initiates the chip erase operation.
+  // The Chip Erase operation is used erase all the data within the memory array. All memory cells containing a "0" will be returned to the erased state of "1". 
+  // This operation requires 6 write cycles to initiate the action. The first two cycles are "unlock" cycles, the third is a configuration cycle, the fourth and fifth are also "unlock" cycles, and the sixth cycle initiates the chip erase operation.
   digitalWrite(LED_BUILTIN, HIGH);
   int len = sprintf(S, "ERASE START\r");
   echo_all(S, len);
@@ -183,10 +184,10 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   for (uint32_t addr = starting; addr < upto; addr++) {
     if (addr % 0x10 == 0) {
       echo_all("\r", 1);
-      len = sprintf(S, "%06xh\t\t", addr);
+      len = sprintf(S, "%06xh\t\t", addr * 2);
       echo_all(S, len);
     }
-    len = sprintf_P(S, "%04x\t", readWord(addr, true));
+    len = sprintf(S, "%04x\t", readWord(addr, true));
     echo_all(S, len);
   }
 
@@ -198,7 +199,6 @@ void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   flashReadMode();
   delayMicroseconds(1);
 
-  int len;
   for (uint32_t addr = starting; addr < upto; addr++) {
     uint16_t word = readWord(addr);
     usb_web.write((uint8_t*)&word, 2);
@@ -247,18 +247,17 @@ void loop() {
 
     digitalWrite(LED_BUILTIN, HIGH);
     for (int i = 0; i < bufLen; i += 2) {
-      uint16_t word = buf[i];
-      word |= buf[i + 1] << 8;
+      uint16_t word = buf[i + 1] << 8 | buf[i];
       flashProgram(addr, word);
       if (addr == 0) {
         // maybe do the first byte twice? this is dumb
         delayMicroseconds(10);
         flashProgram(addr, word);
-        delayMicroseconds(10);
-        flashProgram(addr, word);
+        // delayMicroseconds(10);
+        // flashProgram(addr, word);
       }
       addr++;
-      if (addr % 1024 == 0) {
+      if (addr % 512 == 0) {
         len = sprintf(S, "Wrote %dkb\r", addr * 2 / 1024);
         echo_all(S, len);
       }
@@ -286,7 +285,8 @@ void loop() {
 
   else if (buf[0] == 'D' && buf[1] == '\r') {
     // DUMP COMMAND
-    flashDump(0, 0x400);
+    flashDump(0, 0x2000);
+    // flashDump();
   }
 
   else if (buf[0] == 'P') {

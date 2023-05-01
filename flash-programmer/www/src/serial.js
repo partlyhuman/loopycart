@@ -44,7 +44,7 @@ export class Port {
             });
         };
 
-        await this._device.open()
+        await this._device.open();
 
         if (this._device.configuration === null) {
             return this._device.selectConfiguration(1);
