@@ -24,16 +24,19 @@ export class Serial {
 
 
 export class Port {
+
     constructor(device) {
-        this.device_ = device;
+        this._device = device;
         this.interfaceNumber = 0;
         this.endpointIn = 0;
         this.endpointOut = 0;
+        this.onReceive = () => {};
+        this.onReceiveError = () => {};
     }
 
     async connect() {
         const readLoop = () => {
-            this.device_.transferIn(this.endpointIn, 64).then(result => {
+            this._device.transferIn(this.endpointIn, 64).then(result => {
                 this.onReceive(result.data);
                 readLoop();
             }, error => {
@@ -41,13 +44,13 @@ export class Port {
             });
         };
 
-        await this.device_.open()
+        await this._device.open()
 
-        if (this.device_.configuration === null) {
-            return this.device_.selectConfiguration(1);
+        if (this._device.configuration === null) {
+            return this._device.selectConfiguration(1);
         }
 
-        const interfaces = this.device_.configuration.interfaces;
+        const interfaces = this._device.configuration.interfaces;
         interfaces.forEach(element => {
             element.alternates.forEach(elementalt => {
                 if (elementalt.interfaceClass === 0xFF) {
@@ -64,10 +67,10 @@ export class Port {
             })
         })
 
-        await this.device_.claimInterface(this.interfaceNumber);
+        await this._device.claimInterface(this.interfaceNumber);
 
-        await this.device_.selectAlternateInterface(this.interfaceNumber, 0);
-        await this.device_.controlTransferOut({
+        await this._device.selectAlternateInterface(this.interfaceNumber, 0);
+        await this._device.controlTransferOut({
             'requestType': 'class',
             'recipient': 'interface',
             'request': 0x22,
@@ -79,21 +82,21 @@ export class Port {
     }
 
     async disconnect() {
-        await this.device_.controlTransferOut({
+        await this._device.controlTransferOut({
             'requestType': 'class',
             'recipient': 'interface',
             'request': 0x22,
             'value': 0x00,
             'index': this.interfaceNumber
         });
-        return await this.device_.close();
+        return await this._device.close();
     }
 
     async send(data) {
         if (typeof data === 'string') {
             data = textEncoder.encode(data);
         }
-        return await this.device_.transferOut(this.endpointOut, data);
+        return await this._device.transferOut(this.endpointOut, data);
     }
 }
 

@@ -7,6 +7,11 @@ const $connectButton = $("#connect");
 const $statusDisplay = $('#status');
 let port = null;
 
+function serialEcho(data) {
+    console.log(textDecoder.decode(data));
+    appendLines('receiver_lines', textDecoder.decode(data));
+}
+
 function addLine(linesId, text) {
     var senderLine = document.createElement("div");
     senderLine.className = 'line';
@@ -37,11 +42,7 @@ function connect() {
         $statusDisplay.textContent = '';
         $connectButton.textContent = 'Disconnect';
 
-        port.onReceive = data => {
-            console.log(textDecoder.decode(data));
-                appendLines('receiver_lines', textDecoder.decode(data));
-            // }
-        };
+        port.onReceive = serialEcho;
         port.onReceiveError = error => {
             console.error(error);
         };
@@ -82,6 +83,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
         console.log('No file selected');
         return;
     }
+    console.log('UPLOADING!');
     // typed array with file contents
     const buffer = new Uint16Array(await files[0].arrayBuffer());
     console.log(buffer);
@@ -94,15 +96,46 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     port.send(buffer);
 });
 
+
+$('.flash-inspect').addEventListener('click', () => {
+    port.send('I\r');
+});
+
+$('.flash-download').addEventListener('click', () => {
+    // TODO dynamic size
+    $('.dump-file-link').innerHTML = '';
+
+    const expectedWords = 0x400;
+    // For sanity, we write the bytes in the order we get them; endianness is set on the platform / data
+    const dumpBuffer = new ArrayBuffer(expectedWords * 2);
+    let addr = 0;
+    port.onReceive = null;
+    port.onReceive = (data) => {
+        const dumpView = new Uint8Array(dumpBuffer, addr, data.byteLength);
+        const packetView = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+        dumpView.set(packetView);
+        addr += data.byteLength;
+        if (addr >= expectedWords) {
+            console.log('OK');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([ dumpBuffer ], { type: 'application/octet-stream' }));
+            a.download = 'loopy.bin';
+            a.innerText = 'Download dump';
+            // $('.dump-file-link').appendChild(a);
+            a.click();
+
+            port.onReceive = serialEcho;
+            return;
+        }
+    };
+    port.send('D\r');
+});
+
 $('.cls').addEventListener('click', () => {
     $('#receiver_lines').innerHTML = '';
-})
+});
 
 $('.flash-erase').addEventListener('click', () => {
     // if connected
     port.send('E\r');
 });
-
-$('.flash-dump').addEventListener('click', () => {
-    port.send('D\r');
-})
