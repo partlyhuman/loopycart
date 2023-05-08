@@ -96,21 +96,21 @@ $('.flash-inspect').addEventListener('click', () => {
 });
 
 $('.flash-download').addEventListener('click', () => {
-    // TODO dynamic size
     $('.dump-file-link').innerHTML = '';
 
     // const expectedWords = 1 << 20; // full 2mb
-    const expectedWords = 0x2000;
+    const expectedWords = 1 << 10;
     // For sanity, we write the bytes in the order we get them; endianness is set on the platform / data
     const dumpBuffer = new ArrayBuffer(expectedWords * 2);
-    let addr = 0;
+    let addrBytes = 0;
     port.onReceive = (data) => {
-        const dumpView = new Uint8Array(dumpBuffer, addr, data.byteLength);
+        const dumpView = new Uint8Array(dumpBuffer, addrBytes, data.byteLength);
         const packetView = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
         dumpView.set(packetView);
-        addr += data.byteLength;
-        if (addr >= expectedWords) {
-            console.log('OK');
+        addrBytes += data.byteLength;
+        console.log(addrBytes);
+        if (addrBytes >= dumpBuffer.byteLength) {
+            console.log('DONE reading', addrBytes);
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
             a.download = 'loopy.bin';
@@ -121,7 +121,7 @@ $('.flash-download').addEventListener('click', () => {
             port.onReceive = serialEcho;
         }
     };
-    port.send('D\r');
+    port.send(`D${expectedWords}\r`);
 });
 
 $('.cls').addEventListener('click', () => {

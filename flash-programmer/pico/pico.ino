@@ -24,6 +24,15 @@ TCA9539 databus(2, 0, 0x74, &Wire);
 // sprintf buffer
 char S[128];
 
+void flashLed(int n, int d = 100) {
+  for (int i = 0; i < n; i++) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(d/2);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(d/2);
+  }
+}
+
 inline void databusReadMode() {
   for (int i = 0; i < 16; i++) {
     databus.TCA9539_set_dir(i, TCA9539_PIN_DIR_INPUT);
@@ -58,9 +67,13 @@ inline void flashIdleMode() {
 }
 
 inline void setAddress(uint32_t addr) {
-  for (int i = 0, mask = 1; i < ADDRBITS; i++, mask <<= 1) {
-    digitalWrite(PIN_A0 + i, (mask & addr) > 0);
-  }
+  // for (int i = 0, mask = 1; i < ADDRBITS; i++, mask <<= 1) {
+  //   digitalWrite(PIN_A0 + i, (mask & addr) > 0);
+  // }
+
+  // Fast experiment
+  sio_hw->gpio_clr = 0b11111111111111111111 << PIN_A0;
+  sio_hw->gpio_set = addr << PIN_A0;
 }
 
 inline void writeWord(uint32_t addr, uint16_t word) {
@@ -79,27 +92,25 @@ inline uint16_t readWord(uint32_t addr, bool swapend = false) {
   return databus.TCA9539_read_word();
 }
 
-void flashCommand(uint32_t addr, uint16_t data) {
+inline void flashCommand(uint32_t addr, uint16_t data) {
   // To write a command to the device, system must drive WE# and CE# to Vil,
   // and OE# to Vih. In a command cycle, all address are latched at the later falling edge of CE# and WE#, and all data are latched at the earlier rising edge of CE# and WE#.
 
-  // do this in the outer function?
-  digitalWrite(PIN_OE, HIGH);
+  // PREREQUISITE: OE should be high
+  // digitalWriteFast(PIN_OE, HIGH);
 
   // Don't forget to switch data bus mode
   writeWord(addr, data);
 
-  digitalWrite(PIN_WE, LOW);
-  digitalWrite(PIN_CE, LOW);
+  digitalWriteFast(PIN_WE, LOW);
+  digitalWriteFast(PIN_CE, LOW);
 
   // TCWC >70ns pulse is incredibly short, 1 microsecond is too much
   NOP;
   NOP;
-  // delayMicroseconds(1);
-  
-  digitalWrite(PIN_WE, HIGH);
-  digitalWrite(PIN_CE, HIGH);
-  // delayMicroseconds(1);
+
+  digitalWriteFast(PIN_WE, HIGH);
+  digitalWriteFast(PIN_CE, HIGH);
 }
 
 // function to echo to both Serial and WebUSB
@@ -120,19 +131,28 @@ void echo_all(const char* buf, uint32_t count) {
 }
 
 void flashErase() {
-  // The Chip Erase operation is used erase all the data within the memory array. All memory cells containing a "0" will be returned to the erased state of "1". 
+  // The Chip Erase operation is used erase all the data within the memory array. All memory cells containing a "0" will be returned to the erased state of "1".
   // This operation requires 6 write cycles to initiate the action. The first two cycles are "unlock" cycles, the third is a configuration cycle, the fourth and fifth are also "unlock" cycles, and the sixth cycle initiates the chip erase operation.
   digitalWrite(LED_BUILTIN, HIGH);
   int len = sprintf(S, "ERASE START\r");
   echo_all(S, len);
 
   databusWriteMode();
+  digitalWrite(PIN_OE, HIGH);
+
+  delayMicroseconds(100);
   flashCommand(0x555, 0xaa);
+  delayMicroseconds(100);
   flashCommand(0x2aa, 0x55);
+  delayMicroseconds(100);
   flashCommand(0x555, 0x80);
+  delayMicroseconds(100);
   flashCommand(0x555, 0xaa);
+  delayMicroseconds(100);
   flashCommand(0x2aa, 0x55);
+  delayMicroseconds(100);
   flashCommand(0x555, 0x10);
+  delayMicroseconds(100);
 
   databusReadMode();
   digitalWrite(PIN_OE, HIGH);
@@ -145,8 +165,7 @@ void flashErase() {
     if (databus.TCA9539_read_pin_val(2) && databus.TCA9539_read_pin_val(7)) {
       echo_all("\rOK!\r", 5);
       break;
-    }
-    else if (databus.TCA9539_read_pin_val(5)) {
+    } else if (databus.TCA9539_read_pin_val(5)) {
       echo_all("\rTIMEOUT!\r", 10);
       break;
     }
@@ -166,6 +185,7 @@ void flashErase() {
 void flashEraseSector(uint8_t sector) {
   flashWriteMode();
   databusWriteMode();
+  digitalWrite(PIN_OE, HIGH);
   flashCommand(0x555, 0xaa);
   flashCommand(0x2aa, 0x55);
   flashCommand(0x555, 0x80);
@@ -199,10 +219,12 @@ void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   flashReadMode();
   delayMicroseconds(1);
 
+  digitalWrite(LED_BUILTIN, HIGH);
   for (uint32_t addr = starting; addr < upto; addr++) {
     uint16_t word = readWord(addr);
     usb_web.write((uint8_t*)&word, 2);
   }
+  digitalWrite(LED_BUILTIN, LOW);
 
   flashIdleMode();
 }
@@ -246,6 +268,7 @@ void loop() {
     }
 
     digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(PIN_OE, HIGH);
     for (int i = 0; i < bufLen; i += 2) {
       uint16_t word = buf[i + 1] << 8 | buf[i];
       flashProgram(addr, word);
@@ -283,9 +306,12 @@ void loop() {
     flashInspect(0, 0x400);
   }
 
-  else if (buf[0] == 'D' && buf[1] == '\r') {
+  else if (buf[0] == 'D') {
     // DUMP COMMAND
-    flashDump(0, 0x2000);
+    // followed by expected # of bytes
+    if (sscanf((char*)buf, "D%d\r", &expectedWords) && expectedWords > 0 && expectedWords <= 1 << ADDRBITS) {
+      flashDump(0, expectedWords);
+    }
     // flashDump();
   }
 
@@ -295,10 +321,11 @@ void loop() {
     if (sscanf((char*)buf, "P%d\r", &expectedWords)) {
       len = sprintf(S, "Programming %d bytes\r", expectedWords * 2);
       echo_all(S, len);
+
+      isProgramming = true;
+      addr = 0;
+      flashWriteMode();
     }
-    isProgramming = true;
-    addr = 0;
-    flashWriteMode();
   }
 }
 
@@ -326,6 +353,7 @@ void setup() {
   // Board v2 uses alternate GPIO 0/1 for I2C port 0
   if (!Wire.setSDA(0)) Serial.println("FAIL setting i2c SDA");
   if (!Wire.setSCL(1)) Serial.println("FAIL setting i2c SCL");
+  Wire.setClock(400000);
   databus.TCA9539_init();
 
   Serial.println("IO expander set up");
