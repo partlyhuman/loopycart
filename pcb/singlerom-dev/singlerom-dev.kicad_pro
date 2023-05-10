@@ -603,11 +603,11 @@
     "netclass_assignments": null,
     "netclass_patterns": [
       {
-        "netclass": "Power",
+        "netclass": "Default",
         "pattern": "GND"
       },
       {
-        "netclass": "Power",
+        "netclass": "Default",
         "pattern": "VCC"
       },
       {

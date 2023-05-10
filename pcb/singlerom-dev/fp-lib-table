@@ -6,4 +6,5 @@
   (lib (name "LOOPY_PI")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_PI.pretty")(options "")(descr ""))
   (lib (name "LOOPY_Flash")(type "KiCad")(uri "${KIPRJMOD}/Libraries/MX29LV160DBTI/MX29LV160DBTI.pretty")(options "")(descr ""))
   (lib (name "LOOPY_SRAM")(type "KiCad")(uri "${KIPRJMOD}/Libraries/AS6C6264-55SIN/AS6C6264-55SIN.pretty")(options "")(descr ""))
+  (lib (name "LOOPY_ResNet")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_ResNet.pretty")(options "")(descr ""))
 )
