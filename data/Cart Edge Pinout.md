@@ -10,12 +10,12 @@ Cartridge Connector
  6 -
  7 -
  8 - Something analog video related?
- 9 - SH1 /CS1?
+ 9 - SH1 /CS1? (SRAM /CS1)
 10 -
-11 - SH1 /WR (/WRL?)
+11 - SH1 /WR (/WRL?) (SRAM /WE)
 12 -
-13 -
-14 -
+13 - GND
+14 - 5V (??? on cart ties to 3.3V rail? Check this -Roger)
 15 - SH1 PA15
 16 - SH1 PB1
 17
@@ -34,10 +34,10 @@ Cartridge Connector
 30 - SH1 A2
 31 -
 32 - SH1 A0
-33 -
+33 - (SRAM A0)
 34 -
 35 - SH1 AD0
-36 - SH1 /CS2
+36 - SH1 /CS2 (SRAM /CS2, pulled down when cart removed)
 37 - SH1 AD2
 38 - SH1 AD3
 39 - SH1 AD14
@@ -46,8 +46,7 @@ Cartridge Connector
 42 - SH1 AD8
 43
 44 - SH1 AD10
-45
-
+45 - GND
 46
 47 - GND
 48
@@ -58,12 +57,12 @@ Cartridge Connector
 53
 54 - SH1 /CS6 (pin 63) - ROM /CE
 55
-56 - SH1 /RD  (pin 57) - ROM /OE
-57
-58 - SH1 PA7  (pin 58) - ? (NC on Wan Wan)
-59 - SH1 PA9  (pin 61) - ? (NC on Wan Wan)
+56 - SH1 /RD  (pin 57) - ROM /OE (Shared OE with SRAM)
+57 - (VCC?)
+58 - SH1 PA7  (pin 58) - ? (NC on Wan Wan + AN1M)
+59 - SH1 PA9  (pin 61) - ? (NC on Wan Wan + AN1M)
 60
-61 - SH1 PB3  (pin 84) - ? (Does something on Wan Wan)
+61 - SH1 PB3  (pin 84) - ? (Goes to OKI sound chip RESET on Wanwan)
 62 - SH1 PB5
 63 - SH1 PB7
 64 - SH1 PB13
@@ -89,8 +88,8 @@ Cartridge Connector
 84 - SH1 AD15
 85 - SH1 AD5
 86 - SH1 AD7
-87 - CC PIN 9 (POWER?)
+87 - CC PIN 9 (POWER?) (NC on cart)
 88 - SH1 AD9
-89 - GND
+89 - GND (I think this is +3.3V -Roger)
 90 - SH1 AD11
 ```
