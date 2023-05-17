@@ -10380,7 +10380,7 @@
     (property "Value" "Pi Pico" (at 254 25.4 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "LOOPY_PI:Pi Pico" (at 247.65 25.4 0)
+    (property "Footprint" "LOOPY_PI:RPi_Pico_SMD_TH" (at 247.65 25.4 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "" (at 247.65 25.4 0)
