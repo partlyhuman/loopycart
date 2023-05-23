@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP MCP23S17T-E_SO
+D MICROCHIP - MCP23S17T-E/SO - IC, I/O EXPANDER, 16BIT, 28SOIC
+K
+F http://ww1.microchip.com/downloads/en/DeviceDoc/20001952C.pdf
+$ENDCMP
+#
+#End Doc Library
