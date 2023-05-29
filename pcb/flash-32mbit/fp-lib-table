@@ -1,0 +1,10 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "LOOPY_Cart")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Cart.pretty")(options "")(descr ""))
+  (lib (name "LOOPY_Batt")(type "KiCad")(uri "${KIPRJMOD}/Libraries/CR-2032_HF1N")(options "")(descr ""))
+  (lib (name "LOOPY_PI")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_PI.pretty")(options "")(descr ""))
+  (lib (name "LOOPY_Flash")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Flash/footprints.pretty")(options "")(descr ""))
+  (lib (name "LOOPY_SRAM")(type "KiCad")(uri "${KIPRJMOD}/Libraries/AS6C6264-55SIN/AS6C6264-55SIN.pretty")(options "")(descr ""))
+  (lib (name "LOOPY_ResNet")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_ResNet.pretty")(options "")(descr ""))
+  (lib (name "LOOPY_IO_SPI")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_IO_SPI/MCP23S17T.pretty")(options "")(descr ""))
+)
