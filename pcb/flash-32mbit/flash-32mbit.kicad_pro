@@ -528,7 +528,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "singlerom-dev.kicad_pro",
+    "filename": "flash-32mbit.kicad_pro",
     "version": 1
   },
   "net_settings": {
