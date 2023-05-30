@@ -569,7 +569,7 @@
       (net 14 "/A15") (pinfunction "GPA6") (pintype "passive") (tstamp d50213cb-807b-4bea-ab1e-6f04d8c91b63))
     (pad "28" smd rect (at 4.675 -8.255 180) (size 0.65 1.85) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 13 "/A16") (pinfunction "GPA7") (pintype "passive") (tstamp 578e6c45-f325-4bd7-8d86-f61c9f8d6ae0))
-    (model "MCP23S17T-E_SO.stp"
+    (model "${KICAD7_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-28W_7.5x17.9mm_P1.27mm.step"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
@@ -1930,7 +1930,7 @@
       (net 73 "/D6") (pinfunction "GPA6") (pintype "passive") (tstamp ddfea372-1576-46af-bb13-5fae0f88c570))
     (pad "28" smd rect (at 4.675 -8.255 180) (size 0.65 1.85) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 75 "/D7") (pinfunction "GPA7") (pintype "passive") (tstamp b92a1070-2ec0-4ddc-afac-5a5be14a666a))
-    (model "MCP23S17T-E_SO.stp"
+    (model "${KICAD7_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-28W_7.5x17.9mm_P1.27mm.step"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
