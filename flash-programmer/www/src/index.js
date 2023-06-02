@@ -1,5 +1,8 @@
 import {Serial} from './serial';
 
+const PAD = 0xffff;
+const SERIAL_BUFFER_SIZE = 64;
+
 const textDecoder = new TextDecoder();
 
 const $ = document.querySelector.bind(document);
@@ -82,11 +85,18 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
         return;
     }
     console.log('UPLOADING!');
-    const buffer = new Uint16Array(await files[0].arrayBuffer());
+    let buffer = new Uint16Array(await files[0].arrayBuffer());
+
+    // Detect padding and un-pad
+    const lastWord = buffer.findLastIndex(w => w !== PAD);
+    if (lastWord > 0) {
+        buffer = buffer.subarray(0, lastWord);
+    }
+
+    console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
     // Cheap way to block this off
-    const BLOCKSIZE = 64;
-    port.send(`P${buffer.length}${'\r'.repeat(BLOCKSIZE)}`.substring(0, BLOCKSIZE));
+    port.send(`P${buffer.length}${'\r'.repeat(SERIAL_BUFFER_SIZE)}`.substring(0, SERIAL_BUFFER_SIZE));
     port.send(buffer);
 });
 

@@ -269,21 +269,26 @@ void loop() {
 
     digitalWrite(LED_BUILTIN, HIGH);
     digitalWrite(PIN_OE, HIGH);
-    for (int i = 0; i < bufLen; i += 2) {
-      uint16_t word = buf[i + 1] << 8 | buf[i];
-      flashProgram(addr, word);
-      if (addr == 0) {
-        // maybe do the first byte twice? this is dumb
-        delayMicroseconds(10);
-        flashProgram(addr, word);
-        // delayMicroseconds(10);
-        // flashProgram(addr, word);
-      }
-      addr++;
+    for (int i = 0; i < bufLen; i += 2, addr++) {
+      // echo progress every 1kb, echo status before early exit
       if (addr % 512 == 0) {
-        len = sprintf(S, "Wrote %dkb\r", addr * 2 / 1024);
+        len = sprintf(S, "%d\r", addr * 2);
         echo_all(S, len);
       }
+
+      uint16_t word = buf[i + 1] << 8 | buf[i];
+
+      // Skip padding assuming you have erased first
+      if (word == 0xffff) continue;
+
+      flashProgram(addr, word);
+
+      // maybe do the first byte twice? this is dumb. is it still necessary? regress
+      if (addr == 0) {
+        delayMicroseconds(10);
+        flashProgram(addr, word);
+      }
+
     }
     digitalWrite(LED_BUILTIN, LOW);
 
