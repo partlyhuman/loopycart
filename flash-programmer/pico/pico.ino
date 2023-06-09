@@ -133,8 +133,11 @@ void echo_all(const char* buf, uint32_t count) {
 void flashErase() {
   // The Chip Erase operation is used erase all the data within the memory array. All memory cells containing a "0" will be returned to the erased state of "1".
   // This operation requires 6 write cycles to initiate the action. The first two cycles are "unlock" cycles, the third is a configuration cycle, the fourth and fifth are also "unlock" cycles, and the sixth cycle initiates the chip erase operation.
+
+  const int TIMEOUT = 50;
+
   digitalWrite(LED_BUILTIN, HIGH);
-  int len = sprintf(S, "ERASE START\r");
+  int len = sprintf(S, "ERASE START (up to %d seconds)\r", TIMEOUT*1);
   echo_all(S, len);
 
   databusWriteMode();
@@ -154,10 +157,8 @@ void flashErase() {
   flashCommand(0x555, 0x10);
   delayMicroseconds(100);
 
-  databusReadMode();
-  digitalWrite(PIN_OE, HIGH);
   delay(100);
-  const int TIMEOUT = 35;
+  flashReadMode();
   for (int i = 0; i < TIMEOUT; i++) {
     echo_all(".", 1);
     digitalWrite(PIN_OE, LOW);
@@ -172,14 +173,10 @@ void flashErase() {
     digitalWrite(PIN_OE, HIGH);
     delay(1000);
   }
-
-  echo_all("\r", 2);
-  len = sprintf(S, "ERASE COMPLETE (or timed out)\r");
-  echo_all(S, len);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  databusReadMode();
   flashIdleMode();
+
+  echo_all("\r", 1);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void flashEraseSector(uint8_t sector) {
@@ -248,7 +245,7 @@ void loop() {
   digitalWrite(LED_BUILTIN, LOW);
 
   if (!usb_web.available()) {
-    delay(1000);
+    delay(1);
     return;
   }
 
@@ -271,8 +268,8 @@ void loop() {
     digitalWrite(PIN_OE, HIGH);
     for (int i = 0; i < bufLen; i += 2, addr++) {
       // echo progress every 1kb, echo status before early exit
-      if (addr % 512 == 0) {
-        len = sprintf(S, "%d\r", addr * 2);
+      if ((addr & 4095) == 0) {
+        len = sprintf(S, "%06xh\r", addr * 2);
         echo_all(S, len);
       }
 
@@ -336,7 +333,7 @@ void loop() {
 
 void line_state_callback(bool connected) {
   if (connected) {
-    usb_web.println("CONNECTED");
+    usb_web.print("CONNECTED\r");
     usb_web.flush();
   }
 }
@@ -358,7 +355,7 @@ void setup() {
   // Board v2 uses alternate GPIO 0/1 for I2C port 0
   if (!Wire.setSDA(0)) Serial.println("FAIL setting i2c SDA");
   if (!Wire.setSCL(1)) Serial.println("FAIL setting i2c SCL");
-  Wire.setClock(400000);
+  Wire.setClock(1200000); // Overclocked I2C works! Can go to about 1600000 with proper pullups.
   databus.TCA9539_init();
 
   Serial.println("IO expander set up");
