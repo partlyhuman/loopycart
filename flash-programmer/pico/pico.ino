@@ -62,7 +62,10 @@ inline void flashWriteMode() {
 }
 
 inline void flashIdleMode() {
+  databusReadMode();
   digitalWrite(PIN_CE, HIGH);
+  digitalWrite(PIN_WE, HIGH);
+  digitalWrite(PIN_OE, HIGH);
   delayMicroseconds(1);
 }
 
@@ -267,8 +270,8 @@ void loop() {
     digitalWrite(LED_BUILTIN, HIGH);
     digitalWrite(PIN_OE, HIGH);
     for (int i = 0; i < bufLen; i += 2, addr++) {
-      // echo progress every 1kb, echo status before early exit
-      if ((addr & 4095) == 0) {
+      // echo progress every 16kb
+      if ((addr & 8191) == 0) {
         len = sprintf(S, "%06xh\r", addr * 2);
         echo_all(S, len);
       }
