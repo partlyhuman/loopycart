@@ -89,8 +89,8 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
 
     // Detect padding and un-pad
     const lastWord = buffer.findLastIndex(w => w !== PAD);
-    if (lastWord > 0) {
-        buffer = buffer.subarray(0, lastWord);
+    if (lastWord >= 0) {
+        buffer = buffer.subarray(0, lastWord+1);
     }
 
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
@@ -108,8 +108,8 @@ $('.flash-inspect').addEventListener('click', () => {
 $('.flash-download').addEventListener('click', () => {
     $('.dump-file-link').innerHTML = '';
 
-    // const expectedWords = 1 << 20; // full 2mb
-    const expectedWords = 1 << 10;
+    const expectedWords = 1 << 20; // full 2mb
+    //const expectedWords = 1 << 10;
     // For sanity, we write the bytes in the order we get them; endianness is set on the platform / data
     const dumpBuffer = new ArrayBuffer(expectedWords * 2);
     let addrBytes = 0;
