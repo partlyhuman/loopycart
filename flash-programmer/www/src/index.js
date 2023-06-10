@@ -1,5 +1,7 @@
 import {Serial} from './serial';
 
+const PROTOCOL_VERSION = 1;
+
 const PAD = 0xffff;
 const SERIAL_BUFFER_SIZE = 64;
 
@@ -13,6 +15,30 @@ let port = null;
 function serialEcho(data) {
     let str = textDecoder.decode(data);
     appendLines('receiver_lines', str);
+}
+
+let firstData;
+let versionTimeout;
+function versionCheck(data) {
+    clearTimeout(versionTimeout);
+    firstData += textDecoder.decode(data);
+    let end = firstData.indexOf('\0');
+    if(end >= 0) {
+        let receivedVersion = parseInt(firstData.slice(0, end));
+        if(receivedVersion === PROTOCOL_VERSION) { // Match, echo any more text
+            let moreText = firstData.slice(end+1);
+            if(moreText) appendLines('receiver_lines', moreText);
+            port.onReceive = serialEcho;
+        } else { // Mismatch, disconnect
+            disconnect();
+            $statusDisplay.textContent = `Protocol version mismatch! App: ${PROTOCOL_VERSION}, Device: ${receivedVersion}`;
+        }
+    } else {
+        versionTimeout = setTimeout(()=>{
+            disconnect();
+            $statusDisplay.textContent = "Protocol version check timed out.";
+        }, 200);
+    }
 }
 
 function addLine(linesId, text) {
@@ -45,19 +71,24 @@ async function connect() {
         await port.connect();
         $statusDisplay.textContent = '';
         $connectButton.textContent = 'Disconnect';
-        port.onReceive = serialEcho;
+        firstData = '';
+        port.onReceive = versionCheck;
         port.onReceiveError = error => console.error(error);
     } catch (error) {
         $statusDisplay.textContent = error;
     }
 }
 
-$connectButton.addEventListener('click', () => {
+async function disconnect() {
+    port.disconnect();
+    $connectButton.textContent = 'Connect';
+    $statusDisplay.textContent = '';
+    port = null;
+}
+
+$connectButton.addEventListener('click', async () => {
     if (port) {
-        port.disconnect();
-        $connectButton.textContent = 'Connect';
-        $statusDisplay.textContent = '';
-        port = null;
+        await disconnect();
     } else {
         Serial.requestPort().then(selectedPort => {
             port = selectedPort;

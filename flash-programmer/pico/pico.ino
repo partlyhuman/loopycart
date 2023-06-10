@@ -2,6 +2,8 @@
 #include "Wire.h"
 #include "TCA9539.h"
 
+#define PROTOCOL_VERSION 1
+
 #define NOP __asm__("nop\n\t")
 
 // can eliminate because of CS2 pulldown? test let floating, test high
@@ -336,6 +338,7 @@ void loop() {
 
 void line_state_callback(bool connected) {
   if (connected) {
+    usb_web.print(PROTOCOL_VERSION, DEC); usb_web.print("\r\n"); usb_web.write('\0');
     usb_web.print("CONNECTED\r");
     usb_web.flush();
   }
