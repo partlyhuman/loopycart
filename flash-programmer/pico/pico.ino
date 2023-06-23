@@ -1,18 +1,34 @@
 #include "Adafruit_TinyUSB.h"
 #include "Wire.h"
-#include "TCA9539.h"
+#include "SPI.h"
+#include "MCP23S17.h"
 
 #define PROTOCOL_VERSION 1
 
+// Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
 #define NOP __asm__("nop\n\t")
+#define HALT while (true)
+#define W(pin, val) digitalWriteFast(pin, val)
 
-// can eliminate because of CS2 pulldown? test let floating, test high
-#define PIN_RAMCS1 26
-#define PIN_CE 29
-#define PIN_OE 28
-#define PIN_WE 27
-#define PIN_A0 4
-#define ADDRBITS 20
+#define PIN_RAMCS1 12
+#define PIN_RAMCS2 13
+#define PIN_ROMCE 11
+#define PIN_OE 10
+#define PIN_ROMWE 14
+#define PIN_RAMWE 15
+
+// Using A0 to address bytes (e.g. on SRAM)
+// ROM addresses will always have A0=0, A1 is the first address pin as ROM uses 2-byte words
+// 16 bits of address are on IO expander mcpA
+// Remainder of address pins on pico GPIO
+#define PIN_A0 0
+#define PIN_A17 1
+#define PIN_A18 2
+#define PIN_A19 4
+#define PIN_A20 5
+#define PIN_A21 6
+
+#define ADDRBITS 22
 
 Adafruit_USBD_WebUSB usb_web;
 
@@ -20,8 +36,13 @@ Adafruit_USBD_WebUSB usb_web;
 #define WEBUSB_HTTPS 1
 WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "loopycart.surge.sh");
 
-// Reset pin / Int pin / 12C serial (see TCA9539 datasheet)
-TCA9539 databus(2, 0, 0x74, &Wire);
+// SPI is pico's default SPI0: TX=19, SCK=18, CS=17, RX=16
+#define SPI_CS_PIN 17  //SPI_CS
+// ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
+#define MCP_NO_RESET_PIN 100
+// SPI addresses for MCP23017 are: 0 1 0 0 A2 A1 A0
+MCP23S17 mcpA = MCP23S17(SPI_CS_PIN, MCP_NO_RESET_PIN, 0b0100001);  //Address IO, Address 0x1
+MCP23S17 mcpD = MCP23S17(SPI_CS_PIN, MCP_NO_RESET_PIN, 0b0100000);  //Data IO,    Address 0x0
 
 // sprintf buffer
 char S[128];
@@ -29,99 +50,169 @@ char S[128];
 void flashLed(int n, int d = 100) {
   for (int i = 0; i < n; i++) {
     digitalWrite(LED_BUILTIN, HIGH);
-    delay(d/2);
+    delay(d / 2);
     digitalWrite(LED_BUILTIN, LOW);
-    delay(d/2);
+    delay(d / 2);
   }
+}
+
+inline void ioReadMode(MCP23S17 *mcp) {
+  mcp->setPortMode(0, A);
+  mcp->setPortMode(0, B);
 }
 
 inline void databusReadMode() {
-  for (int i = 0; i < 16; i++) {
-    databus.TCA9539_set_dir(i, TCA9539_PIN_DIR_INPUT);
-  }
+  ioReadMode(&mcpD);
+  // mcpD.setPortMode(0, A);
+  // mcpD.setPortMode(0, B);
+}
+
+inline void ioWriteMode(MCP23S17 *mcp) {
+  mcp->setPortMode(0b11111111, A);
+  mcp->setPortMode(0b11111111, B);
 }
 
 inline void databusWriteMode() {
-  for (int i = 0; i < 16; i++) {
-    databus.TCA9539_set_dir(i, TCA9539_PIN_DIR_OUTPUT);
-  }
+  ioWriteMode(&mcpD);
+  // mcpD.setPortMode(0b11111111, A);
+  // mcpD.setPortMode(0b11111111, B);
 }
 
 inline void flashReadMode() {
-  databusReadMode();
-  digitalWrite(PIN_CE, LOW);
-  digitalWrite(PIN_WE, HIGH);
-  digitalWrite(PIN_OE, LOW);
+  ioWriteMode(&mcpA);
+  ioReadMode(&mcpD);
+  setWeOeBe(HIGH, HIGH, HIGH);
   delayMicroseconds(1);
 }
 
 inline void flashWriteMode() {
-  databusWriteMode();
-  digitalWrite(PIN_CE, LOW);
-  digitalWrite(PIN_WE, LOW);
-  digitalWrite(PIN_OE, HIGH);
+  ioWriteMode(&mcpA);
+  ioWriteMode(&mcpD);
+  setWeOeBe(HIGH, HIGH, HIGH);
   delayMicroseconds(1);
 }
 
 inline void flashIdleMode() {
-  databusReadMode();
-  digitalWrite(PIN_CE, HIGH);
-  digitalWrite(PIN_WE, HIGH);
-  digitalWrite(PIN_OE, HIGH);
+  setWeOeBe(HIGH, HIGH, HIGH);
   delayMicroseconds(1);
 }
 
+// NOW we expect you to send BYTE addresses, if you have a word address it must be <<1
 inline void setAddress(uint32_t addr) {
   // for (int i = 0, mask = 1; i < ADDRBITS; i++, mask <<= 1) {
   //   digitalWrite(PIN_A0 + i, (mask & addr) > 0);
   // }
 
-  // Fast experiment
-  sio_hw->gpio_clr = 0b11111111111111111111 << PIN_A0;
-  sio_hw->gpio_set = addr << PIN_A0;
+  // A1-A16 on mcpA
+  mcpA.setPort((addr >> 1) & 0xff, B);
+  mcpA.setPort((addr >> 9) & 0xff, A);
+
+  // remaining
+  digitalWriteFast(PIN_A0, addr & 0b1);
+  digitalWriteFast(PIN_A17, (addr >> 17) & 0b1);
+  digitalWriteFast(PIN_A18, (addr >> 18) & 0b1);
+  digitalWriteFast(PIN_A19, (addr >> 19) & 0b1);
+  digitalWriteFast(PIN_A20, (addr >> 20) & 0b1);
+  digitalWriteFast(PIN_A21, (addr >> 21) & 0b1);
+
+  // TODO: Could use pico port with A17-A21
+  // sio_hw->gpio_clr = 0b11111111111111111111 << PIN_A0;
+  // sio_hw->gpio_set = addr << PIN_A0;
+}
+
+inline uint16_t readAddress() {
+  return digitalReadFast(PIN_A0)
+         | (mcpA.getPort(B) << 1)
+         | (mcpA.getPort(A) << 9)
+         | (digitalReadFast(PIN_A17) << 17)
+         | (digitalReadFast(PIN_A18) << 18)
+         | (digitalReadFast(PIN_A19) << 19)
+         | (digitalReadFast(PIN_A20) << 20)
+         | (digitalReadFast(PIN_A21) << 21);
+}
+
+inline uint16_t readData() {
+  return (mcpD.getPort(B) << 8) | mcpD.getPort(A);
 }
 
 inline void writeWord(uint32_t addr, uint16_t word) {
   // Don't forget to switch data bus mode
   setAddress(addr);
   //delayMicroseconds()
-  databus.TCA9539_set_word(word);
+  mcpD.setPort(word & 0xff, A);
+  mcpD.setPort(word >> 8, B);
 }
 
 inline uint16_t readWord(uint32_t addr, bool swapend = false) {
   setAddress(addr);
-  //delayMicroseconds()
-  if (swapend) {
-    return databus.TCA9539_read_word_bigend();
-  }
-  return databus.TCA9539_read_word();
+  // Latch it
+  W(PIN_ROMCE, LOW);
+  W(PIN_OE, LOW);
+
+  // tGLQV | OE# to Output Delay | MAX 45ns
+  // This is likely not necessary since SPI command takes time
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+
+  uint16_t data = readData();
+
+  W(PIN_ROMCE, HIGH);
+  W(PIN_OE, HIGH);
+
+  return data;
+}
+
+inline void setWeOeBe() {
+  digitalWriteFast(PIN_ROMWE, HIGH);
+  digitalWriteFast(PIN_OE, HIGH);
+  digitalWriteFast(PIN_ROMCE, HIGH);
+}
+
+inline void setWeOeBe(int we, int oe, int be) {
+  digitalWriteFast(PIN_ROMWE, we);
+  digitalWriteFast(PIN_OE, oe);
+  digitalWriteFast(PIN_ROMCE, be);
 }
 
 inline void flashCommand(uint32_t addr, uint16_t data) {
-  // To write a command to the device, system must drive WE# and CE# to Vil,
-  // and OE# to Vih. In a command cycle, all address are latched at the later falling edge of CE# and WE#, and all data are latched at the earlier rising edge of CE# and WE#.
+  setWeOeBe(HIGH, HIGH, HIGH);
 
-  // PREREQUISITE: OE should be high
-  // digitalWriteFast(PIN_OE, HIGH);
+  // tEHEL | BE# Pulse Width High | Min 25ns
+  // This will easily be accomplished during the following writeWord.
+  // NOP; NOP; NOP; NOP;
 
   // Don't forget to switch data bus mode
   writeWord(addr, data);
 
-  digitalWriteFast(PIN_WE, LOW);
-  digitalWriteFast(PIN_CE, LOW);
+  setWeOeBe(LOW, HIGH, LOW);
 
-  // TCWC >70ns pulse is incredibly short, 1 microsecond is too much
+  // tELEH | BE# Pulse Width | Min 70ns
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
   NOP;
   NOP;
 
-  digitalWriteFast(PIN_WE, HIGH);
-  digitalWriteFast(PIN_CE, HIGH);
+  setWeOeBe(HIGH, HIGH, HIGH);
 }
 
 // function to echo to both Serial and WebUSB
-void echo_all(const char* buf, uint32_t count) {
+void echo_all(const char *buf, uint32_t count = 0) {
+  if (count == 0) {
+    count = strlen(buf);
+  }
   if (usb_web.connected()) {
-    usb_web.write((uint8_t*)buf, count);
+    usb_web.write((uint8_t *)buf, count);
     usb_web.flush();
   }
 
@@ -135,70 +226,80 @@ void echo_all(const char* buf, uint32_t count) {
   }
 }
 
+void flashEraseBank(int bank) {
+  setWeOeBe(HIGH, HIGH, HIGH);
+  int32_t bankAddress = (bank & 0x1) << 21;
+  delayMicroseconds(100);
+  flashCommand(bankAddress, 0x70);
+  delayMicroseconds(100);
+  flashCommand(bankAddress, 0x30);
+  delayMicroseconds(100);
+  flashCommand(bankAddress, 0xd0);
+  // TODO check status when STS pin
+  // Bank erase typ 17.6s
+  delay(20000);
+}
+
 void flashErase() {
-  // The Chip Erase operation is used erase all the data within the memory array. All memory cells containing a "0" will be returned to the erased state of "1".
-  // This operation requires 6 write cycles to initiate the action. The first two cycles are "unlock" cycles, the third is a configuration cycle, the fourth and fifth are also "unlock" cycles, and the sixth cycle initiates the chip erase operation.
-
-  const int TIMEOUT = 50;
-
   digitalWrite(LED_BUILTIN, HIGH);
-  int len = sprintf(S, "ERASE START (up to %d seconds)\r", TIMEOUT*1);
-  echo_all(S, len);
+  echo_all("ERASE START\r");
 
-  databusWriteMode();
-  digitalWrite(PIN_OE, HIGH);
+  ioWriteMode(&mcpD);
+  ioWriteMode(&mcpA);
 
-  delayMicroseconds(100);
-  flashCommand(0x555, 0xaa);
-  delayMicroseconds(100);
-  flashCommand(0x2aa, 0x55);
-  delayMicroseconds(100);
-  flashCommand(0x555, 0x80);
-  delayMicroseconds(100);
-  flashCommand(0x555, 0xaa);
-  delayMicroseconds(100);
-  flashCommand(0x2aa, 0x55);
-  delayMicroseconds(100);
-  flashCommand(0x555, 0x10);
-  delayMicroseconds(100);
+  echo_all("Erasing bank 0...\r");
+  flashEraseBank(0);
 
-  delay(100);
-  flashReadMode();
-  for (int i = 0; i < TIMEOUT; i++) {
-    echo_all(".", 1);
-    digitalWrite(PIN_OE, LOW);
-    delayMicroseconds(1);
-    if (databus.TCA9539_read_pin_val(2) && databus.TCA9539_read_pin_val(7)) {
-      echo_all("\rOK!\r", 5);
-      break;
-    } else if (databus.TCA9539_read_pin_val(5)) {
-      echo_all("\rTIMEOUT!\r", 10);
-      break;
-    }
-    digitalWrite(PIN_OE, HIGH);
-    delay(1000);
-  }
-  flashIdleMode();
+  echo_all("Erasing bank 1...\r");
+  flashEraseBank(1);
 
-  echo_all("\r", 1);
+  echo_all("DONE\r");
+  flashCommand(0, 0xff);
+
   digitalWrite(LED_BUILTIN, LOW);
 }
 
-void flashEraseSector(uint8_t sector) {
+void flashId() {
+  echo_all("ID: ");
   flashWriteMode();
-  databusWriteMode();
-  digitalWrite(PIN_OE, HIGH);
-  flashCommand(0x555, 0xaa);
-  flashCommand(0x2aa, 0x55);
-  flashCommand(0x555, 0x80);
-  flashCommand(0x555, 0xaa);
-  flashCommand(0x2aa, 0x55);
-  flashCommand(sector, 0x30);
-  delay(100);
-  flashIdleMode();
+  flashCommand(0, 0x90);
+
+  // This should display the manufacturer and device code: B0 D0
+
+  delayMicroseconds(1);
+  int len = sprintf(S,"%x", readWord(0) & 0xf);
+  echo_all(S, len);
+
+  delayMicroseconds(1);
+  len = sprintf(S,"%x ", readWord(1) & 0xf);
+  echo_all(S, len);
+
+  delayMicroseconds(1);
+  len = sprintf(S,"%x", readWord(2) & 0xf);
+  echo_all(S, len);
+
+  delayMicroseconds(1);
+  len = sprintf(S,"%x\n\r", readWord(3) & 0xf);
+  echo_all(S, len);
+
+  flashCommand(0, 0xff);
+}
+
+uint16_t flashStatus() {
+  flashWriteMode();
+  flashCommand(0, 0x70);
+  flashReadMode();
+  return readData();
+}
+
+unsigned char flashStatusBit(unsigned int bit) {
+  return bitRead(flashStatus(), bit);
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
+  flashWriteMode();
+  flashCommand(0, 0xff);
+  delayMicroseconds(1);
   flashReadMode();
   delayMicroseconds(1);
 
@@ -209,7 +310,7 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
       len = sprintf(S, "%06xh\t\t", addr * 2);
       echo_all(S, len);
     }
-    len = sprintf(S, "%04x\t", readWord(addr, true));
+    len = sprintf(S, "%04x\t", readWord((addr << 1), true));
     echo_all(S, len);
   }
 
@@ -218,25 +319,32 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
 }
 
 void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
+  flashWriteMode();
+  flashCommand(0, 0xff);
+  delayMicroseconds(1);
   flashReadMode();
   delayMicroseconds(1);
 
   digitalWrite(LED_BUILTIN, HIGH);
   for (uint32_t addr = starting; addr < upto; addr++) {
     uint16_t word = readWord(addr);
-    usb_web.write((uint8_t*)&word, 2);
+    usb_web.write((uint8_t *)&word, 2);
   }
   digitalWrite(LED_BUILTIN, LOW);
 
   flashIdleMode();
 }
 
-void flashProgram(uint32_t addr, uint16_t word) {
-  flashCommand(0x555, 0xaa);
-  flashCommand(0x2aa, 0x55);
-  flashCommand(0x555, 0xa0);
+inline void flashProgram(uint32_t addr, uint16_t word) {
+  flashCommand(addr, 0x40);
   flashCommand(addr, word);
   // TODO check status?
+}
+
+void flashReadStatus() {
+  digitalWriteFast(PIN_ROMCE, LOW);
+  digitalWriteFast(PIN_OE, LOW);
+  digitalWriteFast(PIN_ROMWE, HIGH);
 }
 
 bool isProgramming = false;
@@ -270,7 +378,6 @@ void loop() {
     }
 
     digitalWrite(LED_BUILTIN, HIGH);
-    digitalWrite(PIN_OE, HIGH);
     for (int i = 0; i < bufLen; i += 2, addr++) {
       // echo progress every 16kb
       if ((addr & 8191) == 0) {
@@ -281,16 +388,15 @@ void loop() {
       uint16_t word = buf[i + 1] << 8 | buf[i];
 
       // Skip padding assuming you have erased first
-      if (word == 0xffff) continue;
+      // if (word == 0xffff) continue;
 
       flashProgram(addr, word);
 
       // maybe do the first byte twice? this is dumb. is it still necessary? regress
-      if (addr == 0) {
-        delayMicroseconds(10);
-        flashProgram(addr, word);
-      }
-
+      // if (addr == 0) {
+      //   delayMicroseconds(10);
+      //   flashProgram(addr, word);
+      // }
     }
     digitalWrite(LED_BUILTIN, LOW);
 
@@ -310,13 +416,14 @@ void loop() {
 
   else if (buf[0] == 'I' && buf[1] == '\r') {
     // INSPECT COMMAND
+    flashId();
     flashInspect(0, 0x400);
   }
 
   else if (buf[0] == 'D') {
     // DUMP COMMAND
     // followed by expected # of bytes
-    if (sscanf((char*)buf, "D%d\r", &expectedWords) && expectedWords > 0 && expectedWords <= 1 << ADDRBITS) {
+    if (sscanf((char *)buf, "D%d\r", &expectedWords) && expectedWords > 0 && expectedWords <= 1 << ADDRBITS) {
       flashDump(0, expectedWords);
     }
     // flashDump();
@@ -325,7 +432,7 @@ void loop() {
   else if (buf[0] == 'P') {
     // PROGRAM COMMAND
     // followed by expected # of bytes
-    if (sscanf((char*)buf, "P%d\r", &expectedWords)) {
+    if (sscanf((char *)buf, "P%d\r", &expectedWords)) {
       len = sprintf(S, "Programming %d bytes\r", expectedWords * 2);
       echo_all(S, len);
 
@@ -338,7 +445,9 @@ void loop() {
 
 void line_state_callback(bool connected) {
   if (connected) {
-    usb_web.print(PROTOCOL_VERSION, DEC); usb_web.print("\r\n"); usb_web.write('\0');
+    usb_web.print(PROTOCOL_VERSION, DEC);
+    usb_web.print("\r\n");
+    usb_web.write('\0');
     usb_web.print("CONNECTED\r");
     usb_web.flush();
   }
@@ -357,22 +466,37 @@ void setup() {
 
   Serial.begin(115200);
 
-  // Setup IO expander on data bus
-  // Board v2 uses alternate GPIO 0/1 for I2C port 0
-  if (!Wire.setSDA(0)) Serial.println("FAIL setting i2c SDA");
-  if (!Wire.setSCL(1)) Serial.println("FAIL setting i2c SCL");
-  Wire.setClock(1200000); // Overclocked I2C works! Can go to about 1600000 with proper pullups.
-  databus.TCA9539_init();
+  // Setup IO expanders
+  SPI.begin();
+  if (!mcpA.Init()) {
+    while (true) {
 
-  Serial.println("IO expander set up");
+      Serial.println("ADDRESS IO expander init fail");
+      flashLed(3);
+    }
+  }
+  if (!mcpD.Init()) {
+    while (true) {
+      Serial.println("DATA IO expander init fail");
+      flashLed(4);
+    }
+  }
+  Serial.println("IO expanders initialized");
+  // Rated for 10MHZ
+  // mcpA.setSPIClockSpeed(10000000);
+  // mcpD.setSPIClockSpeed(10000000);
 
   // Disable SRAM - CS2 pulled low, redundant but set CS1 high
+  pinMode(PIN_RAMCS2, OUTPUT);
   pinMode(PIN_RAMCS1, OUTPUT);
+  pinMode(PIN_RAMWE, OUTPUT);
+  digitalWrite(PIN_RAMCS2, LOW);
   digitalWrite(PIN_RAMCS1, HIGH);
+  digitalWrite(PIN_RAMWE, HIGH);
 
   // Setup ROM pins
-  pinMode(PIN_CE, OUTPUT);
-  pinMode(PIN_WE, OUTPUT);
+  pinMode(PIN_ROMCE, OUTPUT);
+  pinMode(PIN_ROMWE, OUTPUT);
   pinMode(PIN_OE, OUTPUT);
 
   // Setup address bus
