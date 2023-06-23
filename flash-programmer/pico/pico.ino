@@ -27,11 +27,9 @@
 #define PIN_A19 4
 #define PIN_A20 5
 #define PIN_A21 6
-
 #define ADDRBITS 22
 
 Adafruit_USBD_WebUSB usb_web;
-
 #define WEBUSB_HTTP 0
 #define WEBUSB_HTTPS 1
 WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "loopycart.surge.sh");
@@ -144,25 +142,33 @@ inline void writeWord(uint32_t addr, uint16_t word) {
 }
 
 inline uint16_t readWord(uint32_t addr, bool swapend = false) {
+  setWeOeBe(HIGH, HIGH, HIGH);
+  
   setAddress(addr);
   // Latch it
-  W(PIN_ROMCE, LOW);
+  W(PIN_ROMCE, LOW);  
   W(PIN_OE, LOW);
+
+  // tAVQV | Address to output delay | MAX 100ns
+  NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;
 
   // tGLQV | OE# to Output Delay | MAX 45ns
   // This is likely not necessary since SPI command takes time
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
 
   uint16_t data = readData();
 
   W(PIN_ROMCE, HIGH);
   W(PIN_OE, HIGH);
+
+  // tAVAV | Read Cycle Time | MIN 120ns
+  NOP;NOP;NOP;
 
   return data;
 }
@@ -184,7 +190,10 @@ inline void flashCommand(uint32_t addr, uint16_t data) {
 
   // tEHEL | BE# Pulse Width High | Min 25ns
   // This will easily be accomplished during the following writeWord.
-  // NOP; NOP; NOP; NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
 
   // Don't forget to switch data bus mode
   writeWord(addr, data);
@@ -235,9 +244,21 @@ void flashEraseBank(int bank) {
   flashCommand(bankAddress, 0x30);
   delayMicroseconds(100);
   flashCommand(bankAddress, 0xd0);
-  // TODO check status when STS pin
+
+  const int TIMEOUT_MS = 30000;
+  const int CHECK_INTERVAL_MS = 1000;
+  bool done = false;
+  for(int time = 0; !done && time < TIMEOUT_MS; time += CHECK_INTERVAL_MS, delay(CHECK_INTERVAL_MS)) {
+    done = flashStatusBit(7);
+    if (done) {
+      echo_all("DONE!\r");
+    } else {
+      echo_all(".\r");
+    }
+  }
+  
   // Bank erase typ 17.6s
-  delay(20000);
+  // delay(20000);
 }
 
 void flashErase() {
@@ -263,32 +284,35 @@ void flashId() {
   echo_all("ID: ");
   flashWriteMode();
   flashCommand(0, 0x90);
+  databusReadMode();
 
   // This should display the manufacturer and device code: B0 D0
 
   delayMicroseconds(1);
-  int len = sprintf(S,"%x", readWord(0) & 0xf);
+  int len = sprintf(S, "%x", readWord(0) & 0xf);
   echo_all(S, len);
 
   delayMicroseconds(1);
-  len = sprintf(S,"%x ", readWord(1) & 0xf);
+  len = sprintf(S, "%x ", readWord(1) & 0xf);
   echo_all(S, len);
 
   delayMicroseconds(1);
-  len = sprintf(S,"%x", readWord(2) & 0xf);
+  len = sprintf(S, "%x", readWord(2) & 0xf);
   echo_all(S, len);
 
   delayMicroseconds(1);
-  len = sprintf(S,"%x\n\r", readWord(3) & 0xf);
+  len = sprintf(S, "%x\n\r", readWord(3) & 0xf);
   echo_all(S, len);
 
   flashCommand(0, 0xff);
 }
 
 uint16_t flashStatus() {
-  flashWriteMode();
+  databusWriteMode();
   flashCommand(0, 0x70);
-  flashReadMode();
+  databusReadMode();
+  setWeOeBe(HIGH, LOW, LOW);
+  NOP;NOP;NOP;NOP;NOP;NOP;
   return readData();
 }
 
@@ -341,12 +365,6 @@ inline void flashProgram(uint32_t addr, uint16_t word) {
   // TODO check status?
 }
 
-void flashReadStatus() {
-  digitalWriteFast(PIN_ROMCE, LOW);
-  digitalWriteFast(PIN_OE, LOW);
-  digitalWriteFast(PIN_ROMWE, HIGH);
-}
-
 bool isProgramming = false;
 uint32_t addr = 0;
 uint32_t expectedWords;
@@ -390,7 +408,7 @@ void loop() {
       // Skip padding assuming you have erased first
       // if (word == 0xffff) continue;
 
-      flashProgram(addr, word);
+      flashProgram(addr << 1, word);
 
       // maybe do the first byte twice? this is dumb. is it still necessary? regress
       // if (addr == 0) {
@@ -499,10 +517,13 @@ void setup() {
   pinMode(PIN_ROMWE, OUTPUT);
   pinMode(PIN_OE, OUTPUT);
 
-  // Setup address bus
-  for (int i = 0; i < ADDRBITS; i++) {
-    pinMode(PIN_A0 + i, OUTPUT);
-  }
+  // Setup overflow address pins
+  pinMode(PIN_A0, OUTPUT);
+  pinMode(PIN_A17, OUTPUT);
+  pinMode(PIN_A18, OUTPUT);
+  pinMode(PIN_A19, OUTPUT);
+  pinMode(PIN_A20, OUTPUT);
+  pinMode(PIN_A21, OUTPUT);
 
   flashIdleMode();
 
