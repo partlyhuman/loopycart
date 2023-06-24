@@ -88,9 +88,9 @@
       (subtractmaskfromsilk false)
       (outputformat 1)
       (mirror false)
-      (drillshape 1)
+      (drillshape 0)
       (scaleselection 1)
-      (outputdirectory "")
+      (outputdirectory "gerbil")
     )
   )
 
@@ -5462,6 +5462,9 @@
     (stroke (width 0.15) (type solid)) (fill solid) (layer "User.3") (tstamp c49b5db4-8477-4cb3-89a5-e1e2effb2153))
   (gr_rect (start 101.3 129.7) (end 199 135.5)
     (stroke (width 0.15) (type solid)) (fill solid) (layer "User.4") (tstamp bfa4125d-9715-4fe9-8f1b-b6bc873d9761))
+  (gr_text "JLCJLCJLCJLC" (at 161.544 93.091) (layer "F.SilkS") (tstamp 7853c4ea-5439-4761-958e-2ed5df021c52)
+    (effects (font (size 0.8 0.8) (thickness 0.08)) (justify left bottom))
+  )
 
   (segment (start 121 97.3755) (end 121 106.1) (width 0.25) (layer "F.Cu") (net 1) (tstamp 2e168013-7cb1-4c04-a47a-ab3de44c862d))
   (segment (start 121 106.1) (end 122.755 107.855) (width 0.25) (layer "F.Cu") (net 1) (tstamp 30ef1172-1cc4-4027-abed-f9d0e1293354))

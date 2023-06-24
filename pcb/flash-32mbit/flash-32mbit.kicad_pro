@@ -615,7 +615,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "flash-32mbit.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""

@@ -4329,7 +4329,7 @@
     (property "Value" "LH28F320SKTD-L70" (at 101.6 101.2731 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "Package_SO:TSOP-I-56_18.4x14mm_P0.5mm" (at 101.6 95.885 0)
+    (property "Footprint" "LOOPY_Flash:TSOP-I-56_18.4x14mm_P0.5mm-HandSolder" (at 101.6 95.885 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "https://html.alldatasheet.com/html-pdf/43052/SHARP/LH28F320SKTD-L70/135/1/LH28F320SKTD-L70.html" (at 88.9 104.775 0)
