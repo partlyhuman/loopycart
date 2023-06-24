@@ -29,6 +29,12 @@
 #define PIN_A21 6
 #define ADDRBITS 22
 
+#define CMD_RESET 0xff
+
+// status register
+static uint16_t SRD;
+#define SR(n) bitRead(SRD, n)
+
 Adafruit_USBD_WebUSB usb_web;
 #define WEBUSB_HTTP 0
 #define WEBUSB_HTTPS 1
@@ -143,14 +149,26 @@ inline void writeWord(uint32_t addr, uint16_t word) {
 
 inline uint16_t readWord(uint32_t addr, bool swapend = false) {
   setWeOeBe(HIGH, HIGH, HIGH);
-  
+
   setAddress(addr);
   // Latch it
-  W(PIN_ROMCE, LOW);  
+  W(PIN_ROMCE, LOW);
   W(PIN_OE, LOW);
 
   // tAVQV | Address to output delay | MAX 100ns
-  NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
 
   // tGLQV | OE# to Output Delay | MAX 45ns
   // This is likely not necessary since SPI command takes time
@@ -168,15 +186,11 @@ inline uint16_t readWord(uint32_t addr, bool swapend = false) {
   W(PIN_OE, HIGH);
 
   // tAVAV | Read Cycle Time | MIN 120ns
-  NOP;NOP;NOP;
+  NOP;
+  NOP;
+  NOP;
 
   return data;
-}
-
-inline void setWeOeBe() {
-  digitalWriteFast(PIN_ROMWE, HIGH);
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_ROMCE, HIGH);
 }
 
 inline void setWeOeBe(int we, int oe, int be) {
@@ -236,10 +250,20 @@ void echo_all(const char *buf, uint32_t count = 0) {
 }
 
 void flashEraseBank(int bank) {
+  int32_t bankAddress = bank ? (1 << 21) : 0;
+  int len = sprintf(S, "Erase bank address %06xh\r", bankAddress);
+  echo_all(S, len);
+
   setWeOeBe(HIGH, HIGH, HIGH);
-  int32_t bankAddress = (bank & 0x1) << 21;
+
   delayMicroseconds(100);
   flashCommand(bankAddress, 0x70);
+  do {
+    delayMicroseconds(100);
+    flashReadStatus();
+  } while (SR(7) == 0);
+  delayMicroseconds(100);
+
   delayMicroseconds(100);
   flashCommand(bankAddress, 0x30);
   delayMicroseconds(100);
@@ -248,15 +272,27 @@ void flashEraseBank(int bank) {
   const int TIMEOUT_MS = 30000;
   const int CHECK_INTERVAL_MS = 1000;
   bool done = false;
-  for(int time = 0; !done && time < TIMEOUT_MS; time += CHECK_INTERVAL_MS, delay(CHECK_INTERVAL_MS)) {
-    done = flashStatusBit(7);
+  for (int time = 0; !done && time < TIMEOUT_MS; time += CHECK_INTERVAL_MS, delay(CHECK_INTERVAL_MS)) {
+    flashReadStatus();
+    done = SR(7);
     if (done) {
       echo_all("DONE!\r");
     } else {
-      echo_all(".\r");
+      echo_all(".");
     }
   }
-  
+
+  if (SR(4) == 1 && SR(5) == 1) {
+    echo_all("Invalid Bank Erase command sequence\r");
+  }
+  else if (SR(5) == 1) {
+    echo_all("Bank Erase error\r");
+  }
+  else {
+    echo_all("Bank Erase successful!\r");
+  }
+
+  flashCommand(0, CMD_RESET);
   // Bank erase typ 17.6s
   // delay(20000);
 }
@@ -307,17 +343,18 @@ void flashId() {
   flashCommand(0, 0xff);
 }
 
-uint16_t flashStatus() {
-  databusWriteMode();
-  flashCommand(0, 0x70);
+void flashReadStatus() {
   databusReadMode();
   setWeOeBe(HIGH, LOW, LOW);
-  NOP;NOP;NOP;NOP;NOP;NOP;
-  return readData();
-}
-
-unsigned char flashStatusBit(unsigned int bit) {
-  return bitRead(flashStatus(), bit);
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  SRD = readData();
+  setWeOeBe(HIGH, HIGH, HIGH);
+  databusWriteMode();
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
@@ -328,13 +365,13 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   delayMicroseconds(1);
 
   int len;
-  for (uint32_t addr = starting; addr < upto; addr++) {
+  for (uint32_t addr = starting; addr < upto; addr += 2) {
     if (addr % 0x10 == 0) {
       echo_all("\r", 1);
-      len = sprintf(S, "%06xh\t\t", addr * 2);
+      len = sprintf(S, "%06xh\t\t", addr);
       echo_all(S, len);
     }
-    len = sprintf(S, "%04x\t", readWord((addr << 1), true));
+    len = sprintf(S, "%04x\t", readWord(addr));
     echo_all(S, len);
   }
 
@@ -344,13 +381,13 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
 
 void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   flashWriteMode();
-  flashCommand(0, 0xff);
+  flashCommand(0, CMD_RESET);
   delayMicroseconds(1);
   flashReadMode();
   delayMicroseconds(1);
 
   digitalWrite(LED_BUILTIN, HIGH);
-  for (uint32_t addr = starting; addr < upto; addr++) {
+  for (uint32_t addr = starting; addr < upto; addr+=2) {
     uint16_t word = readWord(addr);
     usb_web.write((uint8_t *)&word, 2);
   }
@@ -396,29 +433,25 @@ void loop() {
     }
 
     digitalWrite(LED_BUILTIN, HIGH);
-    for (int i = 0; i < bufLen; i += 2, addr++) {
+    for (int i = 0; i < bufLen; i += 2, addr += 2) {
       // echo progress every 16kb
       if ((addr & 8191) == 0) {
-        len = sprintf(S, "%06xh\r", addr * 2);
+        len = sprintf(S, "%06xh\r", addr);
         echo_all(S, len);
       }
 
-      uint16_t word = buf[i + 1] << 8 | buf[i];
+      uint16_t word = buf[i] << 8 | buf[i + 1];
 
       // Skip padding assuming you have erased first
-      // if (word == 0xffff) continue;
+      if (word == 0xffff) continue;
 
-      flashProgram(addr << 1, word);
-
-      // maybe do the first byte twice? this is dumb. is it still necessary? regress
-      // if (addr == 0) {
-      //   delayMicroseconds(10);
-      //   flashProgram(addr, word);
-      // }
+      flashProgram(addr, word);
     }
+
     digitalWrite(LED_BUILTIN, LOW);
 
-    if (addr >= expectedWords) {
+    if (addr >= (expectedWords << 1)) {
+      flashCommand(0, CMD_RESET);
       isProgramming = false;
       len = sprintf(S, "Finished! Wrote %d bytes total\r", addr * 2);
       echo_all(S, len);
@@ -435,7 +468,10 @@ void loop() {
   else if (buf[0] == 'I' && buf[1] == '\r') {
     // INSPECT COMMAND
     flashId();
-    flashInspect(0, 0x400);
+    flashInspect(0x000000, 0x000400);
+    flashInspect(0x100000, 0x100400);
+    flashInspect(0x200000, 0x200400);
+    flashInspect(0x300000, 0x300400);
   }
 
   else if (buf[0] == 'D') {
