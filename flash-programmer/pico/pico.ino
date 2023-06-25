@@ -71,8 +71,14 @@ inline void ioReadMode(MCP23S17 *mcp) {
   mcp->setPortMode(0, B);
 }
 
+// Changing the port mode is superslow so let's cache it
+enum DataBusMode { READ, WRITE };
+int databusMode = WRITE;
+
 inline void databusReadMode() {
+  if (databusMode == READ) return;
   ioReadMode(&mcpD);
+  databusMode = READ;
 }
 
 inline void ioWriteMode(MCP23S17 *mcp) {
@@ -81,7 +87,9 @@ inline void ioWriteMode(MCP23S17 *mcp) {
 }
 
 inline void databusWriteMode() {
+  if (databusMode == WRITE) return;
   ioWriteMode(&mcpD);
+  databusMode = WRITE;
 }
 
 // NOW we expect you to send BYTE addresses, if you have a word address it must be <<1
@@ -491,10 +499,11 @@ void loop() {
 #else
     // Single-byte programming
     for (int bufPtr = 0; bufPtr < bufLen; bufPtr += 2, addr += 2) {
-      // Skip padding assuming you have erased first
-      // if (word == 0xffff) continue;
-      flashCommand(addr, 0x40);
       uint16_t word = buf[bufPtr] << 8 | buf[bufPtr + 1];
+      // Skip padding assuming you have erased first
+      if (word == 0xffff) continue;
+
+      flashCommand(addr, 0x40);
       flashCommand(addr, word);
     }
 
