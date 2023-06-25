@@ -3,6 +3,7 @@
 #include "SPI.h"
 #include "MCP23S17.h"
 
+#define OPT_MULTIBYTE 1
 #define PROTOCOL_VERSION 1
 
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
@@ -17,9 +18,8 @@
 #define PIN_ROMWE 14
 #define PIN_RAMWE 15
 
-// Alias as BE0 is used by Sharp to mean CE
+// Alias as BE0 is used in Sharp datasheet but we call it CE
 #define PIN_ROMBE0 PIN_ROMCE
-
 
 // Using A0 to address bytes (e.g. on SRAM)
 // ROM addresses will always have A0=0, A1 is the first address pin as ROM uses 2-byte words
@@ -83,27 +83,6 @@ inline void ioWriteMode(MCP23S17 *mcp) {
 inline void databusWriteMode() {
   ioWriteMode(&mcpD);
 }
-
-// TODO REMOVE -----------
-inline void flashReadMode() {
-  ioWriteMode(&mcpA);
-  ioReadMode(&mcpD);
-  setWeOeBe(HIGH, HIGH, HIGH);
-  delayMicroseconds(1);
-}
-
-inline void flashWriteMode() {
-  ioWriteMode(&mcpA);
-  ioWriteMode(&mcpD);
-  setWeOeBe(HIGH, HIGH, HIGH);
-  delayMicroseconds(1);
-}
-
-inline void flashIdleMode() {
-  setWeOeBe(HIGH, HIGH, HIGH);
-  delayMicroseconds(1);
-}
-// TODO END REMOVE -----------
 
 // NOW we expect you to send BYTE addresses, if you have a word address it must be <<1
 inline void setAddress(uint32_t addr) {
@@ -186,14 +165,6 @@ uint16_t readWord(uint32_t addr, bool swapend = false) {
   return data;
 }
 
-// TODO replace with bus* -----------
-inline void setWeOeBe(int we, int oe, int be) {
-  digitalWriteFast(PIN_ROMWE, we);
-  digitalWriteFast(PIN_OE, oe);
-  digitalWriteFast(PIN_ROMCE, be);
-}
-// -------------------------
-
 inline void busRead() {
   W(PIN_ROMBE0, LOW);
   W(PIN_OE, LOW);
@@ -213,36 +184,6 @@ inline void busIdle() {
   W(PIN_OE, HIGH);
   W(PIN_ROMWE, HIGH);
   databusWriteMode();
-}
-
-inline void flashCommand(uint16_t data) {
-  busIdle();
-
-  // tEHEL | BE# Pulse Width High | Min 25ns
-  // This will easily be accomplished during the following writeWord.
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-
-  mcpD.setPort(data & 0xff, A);
-  mcpD.setPort(data >> 8, B);
-
-  busWrite();
-
-  // tELEH | BE# Pulse Width | Min 70ns
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-
-  busIdle();
 }
 
 
@@ -399,10 +340,8 @@ void flashReadStatus() {
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
-  // flashWriteMode();
   flashCommand(0, 0xff);
   delayMicroseconds(1);
-  // flashReadMode();
   busRead();
   delayMicroseconds(1);
 
@@ -422,11 +361,9 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
 }
 
 void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
-  flashWriteMode();
   flashCommand(0, CMD_RESET);
-  delayMicroseconds(1);
-  flashReadMode();
-  delayMicroseconds(1);
+  delayMicroseconds(100);
+  busRead();
 
   digitalWrite(LED_BUILTIN, HIGH);
   for (uint32_t addr = starting; addr < upto; addr += 2) {
@@ -434,14 +371,7 @@ void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
     usb_web.write((uint8_t *)&word, 2);
   }
   digitalWrite(LED_BUILTIN, LOW);
-
-  flashIdleMode();
-}
-
-inline void flashProgram(uint32_t addr, uint16_t word) {
-  flashCommand(addr, 0x40);
-  flashCommand(addr, word);
-  // TODO check status?
+  busIdle();
 }
 
 bool isProgramming = false;
@@ -483,6 +413,7 @@ void loop() {
       echo_all(S, len);
     }
 
+#if OPT_MULTIBYTE
     // All of these are in BYTES
     // addr - overall address
     // buf - multi-byte buffer sent over by USB
@@ -494,6 +425,7 @@ void loop() {
       int bytesToWrite = MIN(bufLen - bufPtr, 32);
       int wordsToWrite = bytesToWrite / 2;
 
+      static long retries = 0;
       SRD = 0;
       do {
         flashCommand(addr, 0xe8);
@@ -503,7 +435,7 @@ void loop() {
         if (SR(7)) {
           break;
         } else {
-          delayMicroseconds(1);
+          retries++;
         }
 
         if (SR(1) == SR(4) == 1) {
@@ -541,19 +473,6 @@ void loop() {
       flashCommand(0, 0xd0);
     }
 
-
-    // for (int i = 0; i < bufLen; i += 2, addr += 2) {
-    //   // echo progress every 16kb
-    //   if ((addr & 8191) == 0) {
-    //     len = sprintf(S, "%06xh\r", addr);
-    //     echo_all(S, len);
-    //   }
-    //   uint16_t word = buf[i] << 8 | buf[i + 1];
-    //   // Skip padding assuming you have erased first
-    //   if (word == 0xffff) continue;
-    //   flashProgram(addr, word);
-    // }
-
     if (addr >= 2 * expectedWords) {
       do {
         delayMicroseconds(100);
@@ -563,12 +482,33 @@ void loop() {
       flashCommand(0, CMD_RESET);
 
       isProgramming = false;
-      len = sprintf(S, "Finished! Wrote %d bytes in %f sec\r", addr * 2, (millis() - stopwatch) / 1000.0);
+      len = sprintf(S, "\nFinished! Wrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
       echo_all(S, len);
-      flashIdleMode();
+      busIdle();
 
       W(LED_BUILTIN, LOW);
     }
+#else
+    // Single-byte programming
+    for (int bufPtr = 0; bufPtr < bufLen; bufPtr += 2, addr += 2) {
+      // Skip padding assuming you have erased first
+      // if (word == 0xffff) continue;
+      flashCommand(addr, 0x40);
+      uint16_t word = buf[bufPtr] << 8 | buf[bufPtr + 1];
+      flashCommand(addr, word);
+    }
+
+    if (addr >= expectedWords * 2) {
+      flashCommand(0, CMD_RESET);
+
+      isProgramming = false;
+      len = sprintf(S, "Finished! Wrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
+      echo_all(S, len);
+      busIdle();
+
+      W(LED_BUILTIN, LOW);
+    }
+#endif
   }  // isProgramming
 
   else if (buf[0] == 'E' && buf[1] == '\r') {
@@ -604,10 +544,9 @@ void loop() {
       isProgramming = true;
       addr = 0;
       stopwatch = millis();
-      flashIdleMode();
+      busIdle();
 
       // Clear any status registers?
-      databusWriteMode();
       flashCommand(0, 0x50);
       delayMicroseconds(100);
 
@@ -671,7 +610,7 @@ void setup() {
   pinMode(PIN_A20, OUTPUT);
   pinMode(PIN_A21, OUTPUT);
 
-  flashIdleMode();
+  busIdle();
 
   while (!TinyUSBDevice.mounted()) {
     delay(1);
