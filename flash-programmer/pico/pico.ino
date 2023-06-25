@@ -1,7 +1,6 @@
-#include "Adafruit_TinyUSB.h"
-#include "Wire.h"
-#include "SPI.h"
-#include "MCP23S17.h"
+#include <SPI.h>
+#include <MCP23S17.h>
+#include <Adafruit_TinyUSB.h>
 
 #define OPT_MULTIBYTE 1
 #define PROTOCOL_VERSION 1
@@ -9,7 +8,6 @@
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
 #define NOP __asm__("nop\n\t")
 #define HALT while (true)
-#define W(pin, val) digitalWriteFast(pin, val)
 
 #define PIN_RAMCS1 12
 #define PIN_RAMCS2 13
@@ -35,17 +33,13 @@
 
 #define CMD_RESET 0xff
 
-// status register
-static uint16_t SRD;
-#define SR(n) bitRead(SRD, n)
-
 Adafruit_USBD_WebUSB usb_web;
 #define WEBUSB_HTTP 0
 #define WEBUSB_HTTPS 1
 WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "loopycart.surge.sh");
 
 // SPI is pico's default SPI0: TX=19, SCK=18, CS=17, RX=16
-#define SPI_CS_PIN 17  //SPI_CS
+#define SPI_CS_PIN 17
 // ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
 #define MCP_NO_RESET_PIN 100
 // SPI addresses for MCP23017 are: 0 1 0 0 A2 A1 A0
@@ -57,23 +51,27 @@ char S[128];
 // timing operations
 unsigned long stopwatch;
 
+// status register
+uint16_t SRD;
+#define SR(n) bitRead(SRD, n)
+
 void flashLed(int n, int d = 100) {
   for (int i = 0; i < n; i++) {
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWriteFast(LED_BUILTIN, HIGH);
     delay(d / 2);
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWriteFast(LED_BUILTIN, LOW);
     delay(d / 2);
   }
-}
-
-inline void ioReadMode(MCP23S17 *mcp) {
-  mcp->setPortMode(0, A);
-  mcp->setPortMode(0, B);
 }
 
 // Changing the port mode is superslow so let's cache it
 enum DataBusMode { READ, WRITE };
 int databusMode = WRITE;
+
+inline void ioReadMode(MCP23S17 *mcp) {
+  mcp->setPortMode(0, A);
+  mcp->setPortMode(0, B);
+}
 
 inline void databusReadMode() {
   if (databusMode == READ) return;
@@ -92,10 +90,10 @@ inline void databusWriteMode() {
   databusMode = WRITE;
 }
 
-// NOW we expect you to send BYTE addresses, if you have a word address it must be <<1
+// NOTE address is in bytes, though we write words, A0 will always be 0 for ROM but not always for SRAM
 inline void setAddress(uint32_t addr) {
   // for (int i = 0, mask = 1; i < ADDRBITS; i++, mask <<= 1) {
-  //   digitalWrite(PIN_A0 + i, (mask & addr) > 0);
+  //   digitalWriteFast(PIN_A0 + i, (mask & addr) > 0);
   // }
 
   // A1-A16 on mcpA
@@ -109,21 +107,6 @@ inline void setAddress(uint32_t addr) {
   digitalWriteFast(PIN_A19, (addr >> 19) & 0b1);
   digitalWriteFast(PIN_A20, (addr >> 20) & 0b1);
   digitalWriteFast(PIN_A21, (addr >> 21) & 0b1);
-
-  // TODO: Could use pico port with A17-A21
-  // sio_hw->gpio_clr = 0b11111111111111111111 << PIN_A0;
-  // sio_hw->gpio_set = addr << PIN_A0;
-}
-
-inline uint16_t readAddress() {
-  return digitalReadFast(PIN_A0)
-         | (mcpA.getPort(B) << 1)
-         | (mcpA.getPort(A) << 9)
-         | (digitalReadFast(PIN_A17) << 17)
-         | (digitalReadFast(PIN_A18) << 18)
-         | (digitalReadFast(PIN_A19) << 19)
-         | (digitalReadFast(PIN_A20) << 20)
-         | (digitalReadFast(PIN_A21) << 21);
 }
 
 inline uint16_t readData() {
@@ -131,9 +114,7 @@ inline uint16_t readData() {
 }
 
 inline void writeWord(uint32_t addr, uint16_t word) {
-  // Don't forget to switch data bus mode
   setAddress(addr);
-  //delayMicroseconds()
   mcpD.setPort(word & 0xff, A);
   mcpD.setPort(word >> 8, B);
 }
@@ -174,29 +155,27 @@ uint16_t readWord(uint32_t addr, bool swapend = false) {
 }
 
 inline void busRead() {
-  W(PIN_ROMBE0, LOW);
-  W(PIN_OE, LOW);
-  W(PIN_ROMWE, HIGH);
+  digitalWriteFast(PIN_ROMBE0, LOW);
+  digitalWriteFast(PIN_OE, LOW);
+  digitalWriteFast(PIN_ROMWE, HIGH);
   databusReadMode();
 }
 
 inline void busWrite() {
-  W(PIN_ROMBE0, LOW);
-  W(PIN_OE, HIGH);
-  W(PIN_ROMWE, LOW);
+  digitalWriteFast(PIN_ROMBE0, LOW);
+  digitalWriteFast(PIN_OE, HIGH);
+  digitalWriteFast(PIN_ROMWE, LOW);
   databusWriteMode();
 }
 
 inline void busIdle() {
-  W(PIN_ROMBE0, HIGH);
-  W(PIN_OE, HIGH);
-  W(PIN_ROMWE, HIGH);
+  digitalWriteFast(PIN_ROMBE0, HIGH);
+  digitalWriteFast(PIN_OE, HIGH);
+  digitalWriteFast(PIN_ROMWE, HIGH);
   databusWriteMode();
 }
 
-
-// TODO make a version that skips setting address
-inline void flashCommand(uint32_t addr, uint16_t data) {
+void flashCommand(uint32_t addr, uint16_t data) {
   busIdle();
 
   // tEHEL | BE# Pulse Width High | Min 25ns
@@ -292,7 +271,7 @@ void flashEraseBank(int bank) {
 
 void flashErase() {
   stopwatch = millis();
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWriteFast(LED_BUILTIN, HIGH);
 
   echo_all("Erasing bank 0...\r");
   flashEraseBank(0);
@@ -302,7 +281,7 @@ void flashErase() {
 
   flashCommand(0, CMD_RESET);
 
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWriteFast(LED_BUILTIN, LOW);
   int len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
 }
@@ -373,24 +352,24 @@ void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   delayMicroseconds(100);
   busRead();
 
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWriteFast(LED_BUILTIN, HIGH);
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     uint16_t word = readWord(addr);
     usb_web.write((uint8_t *)&word, 2);
   }
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWriteFast(LED_BUILTIN, LOW);
   busIdle();
 }
 
-bool isProgramming = false;
-uint32_t addr = 0;
-uint32_t expectedWords;
-
 void loop() {
   static uint8_t buf[64];
+  static bool isProgramming = false;
+  static uint32_t addr = 0;
+  static uint32_t expectedWords;
+
   uint32_t bufLen;
   int len;
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWriteFast(LED_BUILTIN, LOW);
 
   if (!usb_web.available()) {
     delay(1);
@@ -403,7 +382,6 @@ void loop() {
     return;
   }
 
-  // MULTIBYTE WRITE
   if (isProgramming) {
 
     if ((bufLen % 2) == 1) {
@@ -473,7 +451,6 @@ void loop() {
       for (int j = 0; j < wordsToWrite; j++, addr += 2, bufPtr += 2) {
         uint16_t word = buf[bufPtr] << 8 | buf[bufPtr + 1];
         flashCommand(addr, word);
-        // writeWord(addr, word);
       }
 
       // After the final buffer data is written, write confirm (DOH) must be written.
@@ -494,7 +471,7 @@ void loop() {
       echo_all(S, len);
       busIdle();
 
-      W(LED_BUILTIN, LOW);
+      digitalWriteFast(LED_BUILTIN, LOW);
     }
 #else
     // Single-byte programming
@@ -515,7 +492,7 @@ void loop() {
       echo_all(S, len);
       busIdle();
 
-      W(LED_BUILTIN, LOW);
+      digitalWriteFast(LED_BUILTIN, LOW);
     }
 #endif
   }  // isProgramming
@@ -559,7 +536,7 @@ void loop() {
       flashCommand(0, 0x50);
       delayMicroseconds(100);
 
-      digitalWrite(LED_BUILTIN, HIGH);
+      digitalWriteFast(LED_BUILTIN, HIGH);
     }
   }
 }
@@ -576,7 +553,7 @@ void line_state_callback(bool connected) {
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWriteFast(LED_BUILTIN, LOW);
 
   // USB setup
   TinyUSB_Device_Init(0);
@@ -588,23 +565,27 @@ void setup() {
   Serial.begin(115200);
 
   // Setup IO expanders
+  bool ok = true;
   SPI.begin();
-  if (!mcpA.Init()) HALT;
-  if (!mcpD.Init()) HALT;
-  Serial.println("IO expanders initialized");
+  if (!mcpA.Init() || !mcpD.Init()) {
+    flashLed(100);
+    HALT;
+  }
   // Rated for 10MHZ
   mcpA.setSPIClockSpeed(10000000);
   mcpD.setSPIClockSpeed(10000000);
   ioWriteMode(&mcpD);
+  // Address bus always in write mode
   ioWriteMode(&mcpA);
+  Serial.println("IO expanders initialized");
 
   // Disable SRAM - CS2 pulled low, redundant but set CS1 high
   pinMode(PIN_RAMCS2, OUTPUT);
   pinMode(PIN_RAMCS1, OUTPUT);
   pinMode(PIN_RAMWE, OUTPUT);
-  digitalWrite(PIN_RAMCS2, LOW);
-  digitalWrite(PIN_RAMCS1, HIGH);
-  digitalWrite(PIN_RAMWE, HIGH);
+  digitalWriteFast(PIN_RAMCS2, LOW);
+  digitalWriteFast(PIN_RAMCS1, HIGH);
+  digitalWriteFast(PIN_RAMWE, HIGH);
 
   // Setup ROM pins
   pinMode(PIN_ROMCE, OUTPUT);
