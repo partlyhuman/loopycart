@@ -17,6 +17,10 @@
 #define PIN_ROMWE 14
 #define PIN_RAMWE 15
 
+// Alias as BE0 is used by Sharp to mean CE
+#define PIN_ROMBE0 PIN_ROMCE
+
+
 // Using A0 to address bytes (e.g. on SRAM)
 // ROM addresses will always have A0=0, A1 is the first address pin as ROM uses 2-byte words
 // 16 bits of address are on IO expander mcpA
@@ -50,6 +54,8 @@ MCP23S17 mcpD = MCP23S17(SPI_CS_PIN, MCP_NO_RESET_PIN, 0b0100000);  //Data IO,  
 
 // sprintf buffer
 char S[128];
+// timing operations
+unsigned long stopwatch;
 
 void flashLed(int n, int d = 100) {
   for (int i = 0; i < n; i++) {
@@ -67,8 +73,6 @@ inline void ioReadMode(MCP23S17 *mcp) {
 
 inline void databusReadMode() {
   ioReadMode(&mcpD);
-  // mcpD.setPortMode(0, A);
-  // mcpD.setPortMode(0, B);
 }
 
 inline void ioWriteMode(MCP23S17 *mcp) {
@@ -78,10 +82,9 @@ inline void ioWriteMode(MCP23S17 *mcp) {
 
 inline void databusWriteMode() {
   ioWriteMode(&mcpD);
-  // mcpD.setPortMode(0b11111111, A);
-  // mcpD.setPortMode(0b11111111, B);
 }
 
+// TODO REMOVE -----------
 inline void flashReadMode() {
   ioWriteMode(&mcpA);
   ioReadMode(&mcpD);
@@ -100,6 +103,7 @@ inline void flashIdleMode() {
   setWeOeBe(HIGH, HIGH, HIGH);
   delayMicroseconds(1);
 }
+// TODO END REMOVE -----------
 
 // NOW we expect you to send BYTE addresses, if you have a word address it must be <<1
 inline void setAddress(uint32_t addr) {
@@ -147,13 +151,12 @@ inline void writeWord(uint32_t addr, uint16_t word) {
   mcpD.setPort(word >> 8, B);
 }
 
-inline uint16_t readWord(uint32_t addr, bool swapend = false) {
-  setWeOeBe(HIGH, HIGH, HIGH);
+uint16_t readWord(uint32_t addr, bool swapend = false) {
+  busIdle();
 
   setAddress(addr);
-  // Latch it
-  W(PIN_ROMCE, LOW);
-  W(PIN_OE, LOW);
+
+  busRead();
 
   // tAVQV | Address to output delay | MAX 100ns
   NOP;
@@ -169,21 +172,11 @@ inline uint16_t readWord(uint32_t addr, bool swapend = false) {
   NOP;
   NOP;
   NOP;
-
-  // tGLQV | OE# to Output Delay | MAX 45ns
-  // This is likely not necessary since SPI command takes time
-  // NOP;
-  // NOP;
-  // NOP;
-  // NOP;
-  // NOP;
-  // NOP;
-  // NOP;
+  NOP;
+  NOP;
 
   uint16_t data = readData();
-
-  W(PIN_ROMCE, HIGH);
-  W(PIN_OE, HIGH);
+  busIdle();
 
   // tAVAV | Read Cycle Time | MIN 120ns
   NOP;
@@ -193,14 +186,37 @@ inline uint16_t readWord(uint32_t addr, bool swapend = false) {
   return data;
 }
 
+// TODO replace with bus* -----------
 inline void setWeOeBe(int we, int oe, int be) {
   digitalWriteFast(PIN_ROMWE, we);
   digitalWriteFast(PIN_OE, oe);
   digitalWriteFast(PIN_ROMCE, be);
 }
+// -------------------------
 
-inline void flashCommand(uint32_t addr, uint16_t data) {
-  setWeOeBe(HIGH, HIGH, HIGH);
+inline void busRead() {
+  W(PIN_ROMBE0, LOW);
+  W(PIN_OE, LOW);
+  W(PIN_ROMWE, HIGH);
+  databusReadMode();
+}
+
+inline void busWrite() {
+  W(PIN_ROMBE0, LOW);
+  W(PIN_OE, HIGH);
+  W(PIN_ROMWE, LOW);
+  databusWriteMode();
+}
+
+inline void busIdle() {
+  W(PIN_ROMBE0, HIGH);
+  W(PIN_OE, HIGH);
+  W(PIN_ROMWE, HIGH);
+  databusWriteMode();
+}
+
+inline void flashCommand(uint16_t data) {
+  busIdle();
 
   // tEHEL | BE# Pulse Width High | Min 25ns
   // This will easily be accomplished during the following writeWord.
@@ -209,10 +225,10 @@ inline void flashCommand(uint32_t addr, uint16_t data) {
   NOP;
   NOP;
 
-  // Don't forget to switch data bus mode
-  writeWord(addr, data);
+  mcpD.setPort(data & 0xff, A);
+  mcpD.setPort(data >> 8, B);
 
-  setWeOeBe(LOW, HIGH, LOW);
+  busWrite();
 
   // tELEH | BE# Pulse Width | Min 70ns
   NOP;
@@ -226,7 +242,39 @@ inline void flashCommand(uint32_t addr, uint16_t data) {
   NOP;
   NOP;
 
-  setWeOeBe(HIGH, HIGH, HIGH);
+  busIdle();
+}
+
+
+// TODO make a version that skips setting address
+inline void flashCommand(uint32_t addr, uint16_t data) {
+  busIdle();
+
+  // tEHEL | BE# Pulse Width High | Min 25ns
+  // This will easily be accomplished during the following writeWord.
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+
+  // Don't forget to switch data bus mode
+  writeWord(addr, data);
+
+  busWrite();
+
+  // tELEH | BE# Pulse Width | Min 70ns
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+
+  busIdle();
 }
 
 // function to echo to both Serial and WebUSB
@@ -254,8 +302,6 @@ void flashEraseBank(int bank) {
   int len = sprintf(S, "Erase bank address %06xh\r", bankAddress);
   echo_all(S, len);
 
-  setWeOeBe(HIGH, HIGH, HIGH);
-
   delayMicroseconds(100);
   flashCommand(bankAddress, 0x70);
   do {
@@ -271,24 +317,22 @@ void flashEraseBank(int bank) {
 
   const int TIMEOUT_MS = 30000;
   const int CHECK_INTERVAL_MS = 1000;
-  bool done = false;
-  for (int time = 0; !done && time < TIMEOUT_MS; time += CHECK_INTERVAL_MS, delay(CHECK_INTERVAL_MS)) {
+  for (int time = 0; time < TIMEOUT_MS; time += CHECK_INTERVAL_MS) {
     flashReadStatus();
-    done = SR(7);
-    if (done) {
+    if (SR(7)) {
       echo_all("DONE!\r");
+      break;
     } else {
       echo_all(".");
+      delay(CHECK_INTERVAL_MS);
     }
   }
 
   if (SR(4) == 1 && SR(5) == 1) {
     echo_all("Invalid Bank Erase command sequence\r");
-  }
-  else if (SR(5) == 1) {
+  } else if (SR(5) == 1) {
     echo_all("Bank Erase error\r");
-  }
-  else {
+  } else {
     echo_all("Bank Erase successful!\r");
   }
 
@@ -298,11 +342,8 @@ void flashEraseBank(int bank) {
 }
 
 void flashErase() {
+  stopwatch = millis();
   digitalWrite(LED_BUILTIN, HIGH);
-  echo_all("ERASE START\r");
-
-  ioWriteMode(&mcpD);
-  ioWriteMode(&mcpA);
 
   echo_all("Erasing bank 0...\r");
   flashEraseBank(0);
@@ -310,42 +351,43 @@ void flashErase() {
   echo_all("Erasing bank 1...\r");
   flashEraseBank(1);
 
-  echo_all("DONE\r");
-  flashCommand(0, 0xff);
+  flashCommand(0, CMD_RESET);
 
   digitalWrite(LED_BUILTIN, LOW);
+  int len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
+  echo_all(S, len);
 }
 
+
+// This should display the manufacturer and device code: B0 D0
 void flashId() {
-  echo_all("ID: ");
-  flashWriteMode();
+  busIdle();
+  delayMicroseconds(100);
+
   flashCommand(0, 0x90);
-  databusReadMode();
+  delayMicroseconds(100);
 
-  // This should display the manufacturer and device code: B0 D0
+  busRead();
+  delayMicroseconds(100);
 
-  delayMicroseconds(1);
-  int len = sprintf(S, "%x", readWord(0) & 0xf);
+  uint16_t manufacturer = readWord(0);
+
+  busIdle();
+  delayMicroseconds(100);
+
+  delay(100);
+  uint16_t device = readWord(2);
+
+  databusWriteMode();
+  flashCommand(0, CMD_RESET);
+  delay(100);
+
+  int len = sprintf(S, "Manufacturer=%x Device=%x\r", manufacturer, device);
   echo_all(S, len);
-
-  delayMicroseconds(1);
-  len = sprintf(S, "%x ", readWord(1) & 0xf);
-  echo_all(S, len);
-
-  delayMicroseconds(1);
-  len = sprintf(S, "%x", readWord(2) & 0xf);
-  echo_all(S, len);
-
-  delayMicroseconds(1);
-  len = sprintf(S, "%x\n\r", readWord(3) & 0xf);
-  echo_all(S, len);
-
-  flashCommand(0, 0xff);
 }
 
 void flashReadStatus() {
-  databusReadMode();
-  setWeOeBe(HIGH, LOW, LOW);
+  busRead();
   NOP;
   NOP;
   NOP;
@@ -353,15 +395,15 @@ void flashReadStatus() {
   NOP;
   NOP;
   SRD = readData();
-  setWeOeBe(HIGH, HIGH, HIGH);
-  databusWriteMode();
+  busIdle();
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
-  flashWriteMode();
+  // flashWriteMode();
   flashCommand(0, 0xff);
   delayMicroseconds(1);
-  flashReadMode();
+  // flashReadMode();
+  busRead();
   delayMicroseconds(1);
 
   int len;
@@ -376,7 +418,7 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   }
 
   echo_all("\r\n\r\n", 4);
-  flashIdleMode();
+  busIdle();
 }
 
 void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
@@ -387,7 +429,7 @@ void flashDump(uint32_t starting = 0, uint32_t upto = 1 << ADDRBITS) {
   delayMicroseconds(1);
 
   digitalWrite(LED_BUILTIN, HIGH);
-  for (uint32_t addr = starting; addr < upto; addr+=2) {
+  for (uint32_t addr = starting; addr < upto; addr += 2) {
     uint16_t word = readWord(addr);
     usb_web.write((uint8_t *)&word, 2);
   }
@@ -423,46 +465,115 @@ void loop() {
     return;
   }
 
+  // MULTIBYTE WRITE
   if (isProgramming) {
-    // len = sprintf(S, "Programming block of %d bytes\r", bufLen);
-    // echo_all(S, len);
 
     if ((bufLen % 2) == 1) {
       len = sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
       echo_all(S, len);
+    } else {
+      // len = sprintf(S, "Programming block of %d bytes\r", bufLen);
+      // echo_all(S, len);
+      // echo_all(".", 1);
     }
 
-    digitalWrite(LED_BUILTIN, HIGH);
-    for (int i = 0; i < bufLen; i += 2, addr += 2) {
-      // echo progress every 16kb
-      if ((addr & 8191) == 0) {
-        len = sprintf(S, "%06xh\r", addr);
-        echo_all(S, len);
+    // echo progress every 16kb
+    if ((addr & 8191) == 0) {
+      len = sprintf(S, "%06xh ", addr);
+      echo_all(S, len);
+    }
+
+    // All of these are in BYTES
+    // addr - overall address
+    // buf - multi-byte buffer sent over by USB
+    // bufLen - length of it
+    // bufPtr - step through buffer using this
+
+    // Multi-word write can write up to 32 bytes / 16 words
+    for (int bufPtr = 0; bufPtr < bufLen;) {
+      int bytesToWrite = MIN(bufLen - bufPtr, 32);
+      int wordsToWrite = bytesToWrite / 2;
+
+      SRD = 0;
+      do {
+        flashCommand(addr, 0xe8);
+        // delayMicroseconds(100);
+        flashReadStatus();
+
+        if (SR(7)) {
+          break;
+        } else {
+          delayMicroseconds(1);
+        }
+
+        if (SR(1) == SR(4) == 1) {
+          echo_all("Block lock error\r");
+          isProgramming = false;
+          return;
+        }
+        if (SR(3) == SR(4) == 1) {
+          echo_all("Undervoltage error\r");
+          isProgramming = false;
+          return;
+        }
+        if (SR(4) == 1 || SR(5) == 1) {
+          echo_all("Unable to multibyte write\r");
+          isProgramming = false;
+          return;
+        }
+      } while (!SR(7));
+
+      // XSR.7 == 1 now, ready for write
+      // A word/byte count (N)-1 is written with write address.
+      flashCommand(addr, wordsToWrite - 1);
+
+      // On the next write, device start address is written with buffer data.
+      // Subsequent writes provide additional device address and data, depending on the count.
+      // All subsequent address must lie within the start address plus the count.
+      for (int j = 0; j < wordsToWrite; j++, addr += 2, bufPtr += 2) {
+        uint16_t word = buf[bufPtr] << 8 | buf[bufPtr + 1];
+        flashCommand(addr, word);
+        // writeWord(addr, word);
       }
 
-      uint16_t word = buf[i] << 8 | buf[i + 1];
-
-      // Skip padding assuming you have erased first
-      if (word == 0xffff) continue;
-
-      flashProgram(addr, word);
+      // After the final buffer data is written, write confirm (DOH) must be written.
+      // This initiates WSM to begin copying the buffer data to the Flash Array.
+      flashCommand(0, 0xd0);
     }
 
-    digitalWrite(LED_BUILTIN, LOW);
 
-    if (addr >= (expectedWords << 1)) {
+    // for (int i = 0; i < bufLen; i += 2, addr += 2) {
+    //   // echo progress every 16kb
+    //   if ((addr & 8191) == 0) {
+    //     len = sprintf(S, "%06xh\r", addr);
+    //     echo_all(S, len);
+    //   }
+    //   uint16_t word = buf[i] << 8 | buf[i + 1];
+    //   // Skip padding assuming you have erased first
+    //   if (word == 0xffff) continue;
+    //   flashProgram(addr, word);
+    // }
+
+    if (addr >= 2 * expectedWords) {
+      do {
+        delayMicroseconds(100);
+        flashReadStatus();
+      } while (!SR(7));
+
       flashCommand(0, CMD_RESET);
+
       isProgramming = false;
-      len = sprintf(S, "Finished! Wrote %d bytes total\r", addr * 2);
+      len = sprintf(S, "Finished! Wrote %d bytes in %f sec\r", addr * 2, (millis() - stopwatch) / 1000.0);
       echo_all(S, len);
       flashIdleMode();
+
+      W(LED_BUILTIN, LOW);
     }
-  }
+  }  // isProgramming
 
   else if (buf[0] == 'E' && buf[1] == '\r') {
     // ERASE COMMAND
     flashErase();
-    // flashEraseSector(0);
   }
 
   else if (buf[0] == 'I' && buf[1] == '\r') {
@@ -492,7 +603,15 @@ void loop() {
 
       isProgramming = true;
       addr = 0;
-      flashWriteMode();
+      stopwatch = millis();
+      flashIdleMode();
+
+      // Clear any status registers?
+      databusWriteMode();
+      flashCommand(0, 0x50);
+      delayMicroseconds(100);
+
+      digitalWrite(LED_BUILTIN, HIGH);
     }
   }
 }
@@ -522,23 +641,14 @@ void setup() {
 
   // Setup IO expanders
   SPI.begin();
-  if (!mcpA.Init()) {
-    while (true) {
-
-      Serial.println("ADDRESS IO expander init fail");
-      flashLed(3);
-    }
-  }
-  if (!mcpD.Init()) {
-    while (true) {
-      Serial.println("DATA IO expander init fail");
-      flashLed(4);
-    }
-  }
+  if (!mcpA.Init()) HALT;
+  if (!mcpD.Init()) HALT;
   Serial.println("IO expanders initialized");
   // Rated for 10MHZ
-  // mcpA.setSPIClockSpeed(10000000);
-  // mcpD.setSPIClockSpeed(10000000);
+  mcpA.setSPIClockSpeed(10000000);
+  mcpD.setSPIClockSpeed(10000000);
+  ioWriteMode(&mcpD);
+  ioWriteMode(&mcpA);
 
   // Disable SRAM - CS2 pulled low, redundant but set CS1 high
   pinMode(PIN_RAMCS2, OUTPUT);
