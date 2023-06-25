@@ -10,11 +10,12 @@ const textDecoder = new TextDecoder();
 const $ = document.querySelector.bind(document);
 const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
+const $lines = $('#receiver_lines');
+console.log($lines);
 let port = null;
 
 function serialEcho(data) {
-    let str = textDecoder.decode(data);
-    appendLines('receiver_lines', str);
+    appendLines(textDecoder.decode(data));
 }
 
 let firstData;
@@ -27,7 +28,7 @@ function versionCheck(data) {
         let receivedVersion = parseInt(firstData.slice(0, end));
         if(receivedVersion === PROTOCOL_VERSION) { // Match, echo any more text
             let moreText = firstData.slice(end+1);
-            if(moreText) appendLines('receiver_lines', moreText);
+            if(moreText) appendLines(moreText);
             port.onReceive = serialEcho;
         } else { // Mismatch, disconnect
             disconnect();
@@ -41,29 +42,31 @@ function versionCheck(data) {
     }
 }
 
-function addLine(linesId, text) {
-    var senderLine = document.createElement('div');
+function addLine(text) {
+    const senderLine = document.createElement('div');
     senderLine.className = 'line';
-    var textnode = document.createTextNode(text);
+    const textnode = document.createTextNode(text);
     senderLine.appendChild(textnode);
-    document.getElementById(linesId).appendChild(senderLine);
+    $lines.appendChild(senderLine);
     return senderLine;
 }
 
 let currentReceiverLine;
 
-function appendLines(linesId, text) {
+function appendLines(text) {
     const lines = text.split('\r');
     if (currentReceiverLine) {
         currentReceiverLine.innerHTML = currentReceiverLine.innerHTML + lines[0];
         for (let i = 1; i < lines.length; i++) {
-            currentReceiverLine = addLine(linesId, lines[i]);
+            currentReceiverLine = addLine(lines[i]);
         }
     } else {
         for (let i = 0; i < lines.length; i++) {
-            currentReceiverLine = addLine(linesId, lines[i]);
+            currentReceiverLine = addLine(lines[i]);
         }
     }
+    console.log($lines.scrollTop, $lines.scrollHeight);
+    $lines.scrollTo(0, $lines.scrollHeight, {smooth: true});
 }
 
 async function connect() {

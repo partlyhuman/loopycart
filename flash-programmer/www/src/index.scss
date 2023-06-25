@@ -1,19 +1,82 @@
-body {
-  font-family: 'Roboto Slab', serif;
+@font-face {
+  font-family: Loopy;
+  src: url("assets/SouvenirStd-DemiItalic.otf") format("opentype");
 }
 
-.lines-body {
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+}
+
+h1, h2, h3, h4, h5, .loopyfont {
+  font-family: 'Loopy', serif;
+  text-transform: uppercase;
+}
+
+body {
+  font-family: 'Roboto Slab', serif;
+  background-color: #e4e4e4;
+}
+
+main {
+  display: flex;
+  height: 100%;
+  padding: 1rem 2rem;
+  width: 100vw;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+input, button {
+  padding: 0.1rem 1rem;
+  display: inline-block;
+  font-size: 1.5rem;
+}
+
+button#connect {
+  background: deepskyblue;
+}
+
+.controls {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.connect-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logger-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  h1, h2, h3, h4 {
+    margin: 0;
+  }
+}
+
+.logger {
+  flex: 1;
+  height: 100%;
   font-family: monospace;
+  overflow-y: scroll;
+  border: 2px solid hotpink;
 }
 
 .line {
   word-wrap: break-word;
   overflow: hidden;
   width: 100%;
-}
-
-input, button {
-  display: block;
-  margin: 1em 0;
-  font-size: 1.5rem;
 }

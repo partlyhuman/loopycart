@@ -6,32 +6,35 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="index.scss" />
+    <link rel="stylesheet" href="index.scss"/>
 </head>
 <body>
 
+<main>
 
-<div class="main-content">
-    <h1>Loopycart!</h1>
+
     <div class="connect-container">
+        <img src="assets/floopydrive.svg" alt="Floopy Drive!" height="180">
         <button id="connect" class="button black">Connect</button>
         <span id="status"></span>
     </div>
-    <input class="flash-upload" type="file">
-    <button class="flash-download button">Dump</button><div class="dump-file-link"></div>
-    <button class="flash-erase button">Erase</button>
-    <button class="flash-inspect button">Inspect</button>
-
-    <div class="container">
-        <div class="receiver">
-            <div class="lines-header">Log</div>
-            <button class="cls button">Clear</button>
-            <div class="lines-body">
-                <div id="receiver_lines" class="lines"></div>
-            </div>
-        </div>
+    <div class="controls">
+        <button class="flash-download button">Dump</button>
+        <button class="flash-erase button">Erase</button>
+        <button class="flash-inspect button">Inspect</button>
+        <input class="flash-upload" type="file">
     </div>
-</div>
+    <div class="dump-file-link"></div>
+
+    <div class="logger-controls">
+        <h2>Log</h2>
+        <button class="cls button">Clear</button>
+    </div>
+
+    <div class="logger" id="receiver_lines">
+
+    </div>
+</main>
 
 
 <script type="module" src="index.js"></script>
