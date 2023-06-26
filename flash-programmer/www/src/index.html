@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <title>Loopy programmer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.scss"/>
 </head>
 <body>
 
 <main>
-
-
     <div class="connect-container">
         <img src="assets/floopydrive.svg" alt="Floopy Drive!" height="180">
         <button id="connect" class="button black">Connect</button>
         <span id="status"></span>
     </div>
-    <div class="controls">
-        <button class="flash-download button">Dump</button>
-        <button class="flash-erase button">Erase</button>
+    <div class="controls rom">
+        <h2>ROM</h2>
         <button class="flash-inspect button">Inspect</button>
+        <button class="flash-download button">Dump</button>
+        <button class="flash-erase-one button">Erase 2MB</button>
+        <button class="flash-erase button">Full Erase</button>
         <input class="flash-upload" type="file">
+    </div>
+    <div class="controls sram">
+        <h2>SRAM</h2>
+        <button class="sram-download button">Download</button>
+        <button class="sram-erase button">Format</button>
+        <input class="sram-upload" type="file">
     </div>
     <div class="dump-file-link"></div>
 
