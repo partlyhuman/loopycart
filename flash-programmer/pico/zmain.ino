@@ -5,8 +5,6 @@ void loop() {
   static uint32_t addr = 0;
   static uint32_t expectedWords;
 
-  digitalWriteFast(LED_BUILTIN, LOW);
-
   if (!usb_web.available()) {
     delay(1);
     return;
