@@ -25,12 +25,15 @@ void loop() {
   else if (buf[0] == 'E') {
     // ERASE COMMAND
     if (buf[1] == '\r') {
+      flashClearLocks();
       flashErase();
       flashCommand(0, CMD_RESET);
     } else if (buf[1] == '0' && buf[2] == '\r') {
+      flashClearLocks();
       flashEraseBank(0);
       flashCommand(0, CMD_RESET);
     } else if (buf[1] == '1' && buf[2] == '\r') {
+      flashClearLocks();
       flashEraseBank(1);
       flashCommand(0, CMD_RESET);
     } else if (buf[1] == 's' && buf[2] == '\r') {
@@ -104,10 +107,9 @@ void setup() {
   Serial.begin(115200);
 
   // Setup IO expanders
-  bool ok = true;
   SPI.begin();
   if (!mcpA.Init() || !mcpD.Init()) {
-    flashLed(100);
+    flashLed(50);
     HALT;
   }
   // Rated for 10MHZ

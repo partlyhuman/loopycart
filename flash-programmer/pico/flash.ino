@@ -88,6 +88,31 @@ void flashCommand(uint32_t addr, uint16_t data) {
   busIdle();
 }
 
+// returns TRUE if any problems
+bool flashStatusCheck() {
+  flashCommand(0, 0x70);
+  flashReadStatus();
+  if (!SR(7)) {
+    echo_all("STATUS busy");
+  }
+  if (SR(5) && SR(4)) {
+    echo_all("STATUS improper command");
+  }
+  if (SR(3)) {
+    echo_all("STATUS undervoltage");
+  }
+  if (SR(1)) {
+    echo_all("STATUS locked");
+  }
+  if (SR(2)) {
+    echo_all("STATUS write suspended");
+  }
+  if (SR(6)) {
+    echo_all("STATUS erase suspended");
+  }
+  return SRD != 0;
+}
+
 // Major functions
 
 void flashEraseBank(int bank) {
@@ -121,17 +146,19 @@ void flashEraseBank(int bank) {
     }
   }
 
-  if (SR(4) == 1 && SR(5) == 1) {
-    echo_all("Invalid Bank Erase command sequence\r");
-  } else if (SR(5) == 1) {
-    echo_all("Bank Erase error\r");
-  } else {
-    echo_all("Bank Erase successful!\r");
+  if (flashStatusCheck()) {
+    echo_all("Bank erase successful!\r");
   }
 
+  // if (SR(4) == 1 && SR(5) == 1) {
+  //   echo_all("Invalid Bank Erase command sequence\r");
+  // } else if (SR(5) == 1) {
+  //   echo_all("Bank Erase error\r");
+  // } else {
+  //   echo_all("Bank Erase successful!\r");
+  // }
+
   flashCommand(0, CMD_RESET);
-  // Bank erase typ 17.6s
-  // delay(20000);
 }
 
 void flashErase() {
@@ -144,13 +171,24 @@ void flashErase() {
   echo_all("Erasing bank 1...\r");
   flashEraseBank(1);
 
-  flashCommand(0, CMD_RESET);
-
   digitalWriteFast(LED_BUILTIN, LOW);
   len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
 }
 
+void flashClearLocks() {
+  flashCommand(0, 0x60);
+  flashCommand(0, 0xd0);
+
+  do {
+    flashReadStatus();
+    delayMicroseconds(10);
+  } while (!SR(7));
+
+  if (flashStatusCheck()) {
+    echo_all("Lock bits cleared successfully\r");
+  }
+}
 
 // This should display the manufacturer and device code: B0 D0
 void flashId() {
