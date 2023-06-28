@@ -1,3 +1,9 @@
+// Make sure the BE1 don't keep getting twiddled back and forth,
+// use 0 as a command address BUT KEEP BE1 SET
+inline uint32_t zeroWithBank(uint32_t addr) {
+  return addr & (1 << ADDRBITS - 1);
+}
+
 // Bus states - Sharp flash uses 3 wire control and these are predefined states
 
 inline void busRead() {
@@ -88,34 +94,43 @@ void flashCommand(uint32_t addr, uint16_t data) {
   busIdle();
 }
 
-// returns TRUE if any problems
-bool flashStatusCheck() {
-  flashCommand(0, 0x70);
+// returns TRUE if OK
+bool flashStatusCheck(uint32_t addr) {
+  bool ok = true;
+  flashCommand(zeroWithBank(addr), 0x70);
   flashReadStatus();
   if (!SR(7)) {
     echo_all("STATUS busy");
+    ok = false;
   }
   if (SR(5) && SR(4)) {
     echo_all("STATUS improper command");
+    ok = false;
   }
   if (SR(3)) {
     echo_all("STATUS undervoltage");
+    ok = false;
   }
   if (SR(1)) {
     echo_all("STATUS locked");
+    ok = false;
   }
   if (SR(2)) {
     echo_all("STATUS write suspended");
+    ok = false;
   }
   if (SR(6)) {
     echo_all("STATUS erase suspended");
+    ok = false;
   }
-  return SRD != 0;
+  return ok;
 }
 
 // Major functions
 
 void flashEraseBank(int bank) {
+  digitalWriteFast(LED_BUILTIN, HIGH);
+
   int32_t bankAddress = bank ? (1 << 21) : 0;
   len = sprintf(S, "Erase bank address %06xh\r", bankAddress);
   echo_all(S, len);
@@ -146,7 +161,7 @@ void flashEraseBank(int bank) {
     }
   }
 
-  if (flashStatusCheck()) {
+  if (flashStatusCheck(bankAddress)) {
     echo_all("Bank erase successful!\r");
   }
 
@@ -158,12 +173,17 @@ void flashEraseBank(int bank) {
   //   echo_all("Bank Erase successful!\r");
   // }
 
-  flashCommand(0, CMD_RESET);
+  digitalWriteFast(LED_BUILTIN, LOW);
+  // clear status register
+  flashCommand(0, 0x50);
+  delayMicroseconds(100);
+  // Read mode
+  flashCommand(0, 0xff);
+  delayMicroseconds(100);
 }
 
 void flashErase() {
   stopwatch = millis();
-  digitalWriteFast(LED_BUILTIN, HIGH);
 
   echo_all("Erasing bank 0...\r");
   flashEraseBank(0);
@@ -171,7 +191,6 @@ void flashErase() {
   echo_all("Erasing bank 1...\r");
   flashEraseBank(1);
 
-  digitalWriteFast(LED_BUILTIN, LOW);
   len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
 }
@@ -185,7 +204,7 @@ void flashClearLocks() {
     delayMicroseconds(10);
   } while (!SR(7));
 
-  if (flashStatusCheck()) {
+  if (flashStatusCheck(0)) {
     echo_all("Lock bits cleared successfully\r");
   }
 }
@@ -230,7 +249,7 @@ void flashReadStatus() {
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
-  flashCommand(0, 0xff);
+  flashCommand(zeroWithBank(starting), 0xff);
   delayMicroseconds(1);
   busRead();
   delayMicroseconds(1);
@@ -250,7 +269,7 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
 }
 
 void flashDump(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
-  flashCommand(0, CMD_RESET);
+  flashCommand(zeroWithBank(starting), CMD_RESET);
   delayMicroseconds(100);
   busRead();
 
@@ -268,10 +287,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   if ((bufLen % 2) == 1) {
     len = sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
     echo_all(S, len);
-  } else {
-    // len = sprintf(S, "Programming block of %d bytes\r", bufLen);
-    // echo_all(S, len);
-    // echo_all(".", 1);
   }
 
   // echo progress every 16kb
@@ -288,35 +303,64 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   // bufPtr - step through buffer using this
 
   // Multi-word write can write up to 32 bytes / 16 words
+  const uint32_t bankBoundary = 1 << (ADDRBITS - 1);
+  const size_t MAX_MULTIBYTE_WRITE = 32;
+  bool atBoundary = false;
+  uint32_t currentBank = zeroWithBank(addr);
+
+  // Erase as you go:
+  // if (addr == 0) {
+  //   flashEraseBank(0);
+  // }
+  // if (addr == bankBoundary) {
+  //   flashEraseBank(1);
+  // }
+
   for (int bufPtr = 0; bufPtr < bufLen;) {
-    int bytesToWrite = MIN(bufLen - bufPtr, 32);
+    int bytesToWrite = MIN(bufLen - bufPtr, MAX_MULTIBYTE_WRITE);
+    if (addr < bankBoundary && addr + bytesToWrite >= bankBoundary) {
+      // Don't allow multibyte writes to cross banks
+      atBoundary = true;
+      bytesToWrite = MIN(bankBoundary - addr, MAX_MULTIBYTE_WRITE);
+      len = sprintf(S, "\r\nFinal write into bank 0 writing %d bytes from %x to %x\r\n", bytesToWrite, addr, addr + bytesToWrite);
+      echo_all(S, len);
+    }
     int wordsToWrite = bytesToWrite / 2;
 
-    static long retries = 0;
+    long retries = 0;
     SRD = 0;
     do {
       flashCommand(addr, 0xe8);
-      // delayMicroseconds(100);
       flashReadStatus();
 
       if (SR(7)) {
+        // READY
         break;
       } else {
-        retries++;
+        if (++retries > 1000) {
+          len = sprintf(S, "\r\nTIMEOUT @ %06x\r\n", addr);
+          echo_all(S, len);
+          // XXX Don't actually return here
+          return true;
+        }
+        delayMicroseconds(1);
+        continue;
       }
 
+      // for bigger errors, have a bigger delay before retry
       if (SR(1) == SR(4) == 1) {
-        echo_all("Block lock error\r");
-        return false;
+        len = sprintf(S, "Block lock error @ %06x\r\n", addr);
+        echo_all(S, len);
       }
       if (SR(3) == SR(4) == 1) {
-        echo_all("Undervoltage error\r");
-        return false;
+        len = sprintf(S, "Undervoltage error @ %06x\r\n", addr);
+        echo_all(S, len);
       }
       if (SR(4) == 1 || SR(5) == 1) {
-        echo_all("Unable to multibyte write\r");
-        return false;
+        len = sprintf(S, "Unable to multibyte write @ %06x\r\n", addr);
+        echo_all(S, len);
       }
+      delay(100);
     } while (!SR(7));
 
     // XSR.7 == 1 now, ready for write
@@ -333,7 +377,24 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     // After the final buffer data is written, write confirm (DOH) must be written.
     // This initiates WSM to begin copying the buffer data to the Flash Array.
-    flashCommand(0, 0xd0);
+    // flashCommand(0, 0xd0);
+    // Use the bank we started with not the bank we ended with
+    flashCommand(currentBank, 0xd0);
+
+    if (atBoundary) {
+      echo_all("\r\nFinishing first block\r\n");
+      // while (!flashStatusCheck(currentBank)) {
+      //   delay(100);
+      // }
+      // clear status register
+      flashCommand(0, 0x50);
+      delay(100);
+      echo_all("\r\nStarting new block\r\n");
+      flashCommand(bankBoundary, 0xff);
+      delay(100);
+      flashCommand(bankBoundary, 0x50);
+      delay(100);
+    }
   }
 
   if (addr >= 2 * expectedWords) {

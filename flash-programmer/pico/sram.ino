@@ -117,7 +117,7 @@ void sramErase() {
   digitalWriteFast(PIN_OE, HIGH);
 
   for (uint32_t addr = 0; addr < upperAddress; addr++) {
-    if (addr % 0x10 == 0) {
+    if (addr % 0x100 == 0) {
       echo_all(".");
     }
     sramWriteByte(addr, 0);

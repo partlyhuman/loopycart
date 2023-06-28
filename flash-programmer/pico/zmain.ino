@@ -75,10 +75,6 @@ void loop() {
       stopwatch = millis();
       busIdle();
 
-      // Clear any status registers?
-      flashCommand(0, 0x50);
-      delayMicroseconds(100);
-
       digitalWriteFast(LED_BUILTIN, HIGH);
     } else if (buf[1] == 's' && buf[2] == '\r') {
       // program SRAM always uses full 8kb
