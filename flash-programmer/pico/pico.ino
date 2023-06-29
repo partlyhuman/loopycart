@@ -11,10 +11,11 @@
 
 #define PIN_RAMCS1 12
 #define PIN_RAMCS2 13
-#define PIN_ROMCE 11
-#define PIN_OE 10
-#define PIN_ROMWE 14
 #define PIN_RAMWE 15
+
+#define PIN_ROMCE 11
+#define PIN_ROMWE 14
+#define PIN_OE 10
 
 // Alias as BE0 is used in Sharp datasheet but we call it CE
 #define PIN_ROMBE0 PIN_ROMCE
@@ -129,7 +130,6 @@ inline void writeByte(uint32_t addr, uint8_t byte) {
   setAddress(addr);
   mcpD.setPort(byte, A);
 }
-
 
 // function to echo to both Serial and WebUSB
 void echo_all(const char *buf, uint32_t count = 0) {

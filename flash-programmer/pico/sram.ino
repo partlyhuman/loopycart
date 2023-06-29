@@ -2,6 +2,8 @@
 
 inline void sramSelect() {
   digitalWriteFast(PIN_ROMCE, HIGH);
+  digitalWriteFast(PIN_ROMWE, HIGH);
+  digitalWriteFast(PIN_OE, HIGH);
   digitalWriteFast(PIN_RAMCS1, LOW);
   digitalWriteFast(PIN_RAMCS2, HIGH);
 }
@@ -12,10 +14,9 @@ inline void sramDeselect() {
 }
 
 uint8_t sramReadByte(uint32_t addr) {
+  // braindead 1 cycle read (address controlled)
   setAddress(addr);
-  digitalWriteFast(PIN_OE, LOW);
-
-  // tOE | Output enable to output valid | 50ns max
+  // tAA | Address access time | 55ns
   NOP;
   NOP;
   NOP;
@@ -24,56 +25,71 @@ uint8_t sramReadByte(uint32_t addr) {
   NOP;
   NOP;
   NOP;
-  NOP;
-
-  uint8_t byte = readByte();
-  digitalWriteFast(PIN_OE, HIGH);
-
-  // tRC | Read cycle time | 100ns max
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-
-  return byte;
+  return readByte();
 }
 
 void sramWriteByte(uint32_t addr, uint8_t byte) {
-  // OE should be high already
-  writeByte(addr, byte);
+  databusReadMode();
+
+  // OE should be high the whole time
+  // writeByte(addr, byte);
+  setAddress(addr);
 
   digitalWriteFast(PIN_RAMWE, LOW);
-  // tWP | Write pulse width | min 60 ns
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  digitalWriteFast(PIN_RAMWE, HIGH);
-  // Write cycle time | min 100 ns
 
+  // tWHZ | Write to output in High-Z | 20ns
   NOP;
   NOP;
   NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
+
+  databusWriteMode();
+  mcpD.setPort(byte, A);
+
+  digitalWriteFast(PIN_RAMWE, HIGH);
+
+  databusReadMode();
+
+#if false
+
+  // CE controlled writing for compatibility with FRAM
+  // digitalWriteFast(PIN_RAMCS1, LOW);
+
+  // tWP | Write pulse width | min 60 ns
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  delayMicroseconds(1);
+
+  digitalWriteFast(PIN_RAMWE, HIGH);
+
+  // CE controlled writing for compatibility with FRAM
+  // digitalWriteFast(PIN_RAMCS1, HIGH);
+
+  // Write cycle time | min 100 ns
+  delayMicroseconds(1);
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+  // NOP;
+#endif
 }
 
 void sramInspect(uint32_t starting = 0, uint32_t upto = (1 << SRAM_ADDRBITS)) {
   sramSelect();
   databusReadMode();
+
+  // continuous read mode
+  digitalWriteFast(PIN_OE, LOW);
 
   for (uint32_t addr = starting; addr < upto; addr++) {
     if (addr % 0x10 == 0) {
@@ -85,6 +101,9 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = (1 << SRAM_ADDRBITS)) {
     echo_all(S, len);
   }
 
+  // continuous read mode
+  digitalWriteFast(PIN_OE, HIGH);
+
   sramDeselect();
   databusWriteMode();
   echo_all("\r\n\r\n", 4);
@@ -95,10 +114,17 @@ void sramDump(uint32_t starting = 0, uint32_t upto = (1 << SRAM_ADDRBITS)) {
   sramSelect();
   databusReadMode();
 
+  // continuous read mode
+  digitalWriteFast(PIN_OE, LOW);
+
+
   for (uint32_t addr = starting; addr < upto; addr++) {
     uint8_t byte = sramReadByte(addr);
     usb_web.write(&byte, 1);
   }
+
+  // continuous read mode
+  digitalWriteFast(PIN_OE, HIGH);
 
   sramDeselect();
   databusWriteMode();
@@ -107,7 +133,8 @@ void sramDump(uint32_t starting = 0, uint32_t upto = (1 << SRAM_ADDRBITS)) {
 }
 
 void sramErase() {
-  uint32_t upperAddress = 1 << SRAM_ADDRBITS;
+  digitalWriteFast(LED_BUILTIN, HIGH);
+  const uint32_t upperAddress = 1 << SRAM_ADDRBITS;
   echo_all("Erasing SRAM");
 
   stopwatch = millis();
@@ -115,18 +142,20 @@ void sramErase() {
   sramSelect();
   databusWriteMode();
   digitalWriteFast(PIN_OE, HIGH);
+  digitalWriteFast(PIN_RAMWE, HIGH);
 
   for (uint32_t addr = 0; addr < upperAddress; addr++) {
     if (addr % 0x100 == 0) {
       echo_all(".");
     }
-    sramWriteByte(addr, 0);
+    sramWriteByte(addr, 0xff);
   }
 
-  len = sprintf(S, "\r\nErased %d bytes of SRAM in %f sec!\r\n", upperAddress, (millis() - stopwatch) / 1000.0);
+  len = sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec\r\n", upperAddress, (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
 
   sramDeselect();
+  digitalWriteFast(LED_BUILTIN, LOW);
 }
 
 // Returns whether programming should continue

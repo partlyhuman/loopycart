@@ -116,13 +116,9 @@ void setup() {
   ioWriteMode(&mcpA);
   Serial.println("IO expanders initialized");
 
-  // Disable SRAM - CS2 pulled low, redundant but set CS1 high
   pinMode(PIN_RAMCS2, OUTPUT);
   pinMode(PIN_RAMCS1, OUTPUT);
   pinMode(PIN_RAMWE, OUTPUT);
-  digitalWriteFast(PIN_RAMCS2, LOW);
-  digitalWriteFast(PIN_RAMCS1, HIGH);
-  digitalWriteFast(PIN_RAMWE, HIGH);
 
   // Setup ROM pins
   pinMode(PIN_ROMCE, OUTPUT);
@@ -137,9 +133,15 @@ void setup() {
   pinMode(PIN_A20, OUTPUT);
   pinMode(PIN_A21, OUTPUT);
 
+  sramDeselect();
   busIdle();
+
+  flashLed(2);
 
   while (!TinyUSBDevice.mounted()) {
     delay(1);
   }
+
+  flashLed(4);
+
 }
