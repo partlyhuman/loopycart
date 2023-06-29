@@ -43,14 +43,17 @@ void loop() {
 
   else if (buf[0] == 'I' && buf[1] == '\r') {
     // INSPECT COMMAND
-    flashId();
-    echo_all("FLASH---");
-    flashInspect(0x000000, 0x000400);
-    flashInspect(0x100000, 0x100400);
-    flashInspect(0x200000, 0x200400);
-    flashInspect(0x300000, 0x300400);
-    echo_all("SRAM---");
-    sramInspect(0, 0x400);
+    // flashId();
+    echo_all("\r\n---FLASH-lower---\r\n");
+    flashInspect(0x000000, 0x000100);
+    echo_all("\r\n------\r\n");
+    flashInspect(0x100000, 0x100100);
+    echo_all("\r\n---FLASH-upper---\r\n");
+    flashInspect(0x200000, 0x200100);
+    echo_all("\r\n------\r\n");
+    flashInspect(0x300000, 0x300100);
+    echo_all("\r\n---SRAM---\r\n");
+    sramInspect(0, 0x100);
   }
 
   else if (buf[0] == 'D') {
