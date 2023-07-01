@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <MCP23S17.h>
 #include <Adafruit_TinyUSB.h>
+#include <LittleFS.h>
 
 #define OPT_MULTIBYTE 1
 #define PROTOCOL_VERSION 2
@@ -160,4 +161,3 @@ void line_state_callback(bool connected) {
     usb_web.flush();
   }
 }
-

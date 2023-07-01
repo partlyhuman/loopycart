@@ -209,8 +209,8 @@ void flashClearLocks() {
   }
 }
 
-// This should display the manufacturer and device code: B0 D0
-void flashId() {
+// This should display the manufacturer and device code of the FLASH CHIP: B0 D0
+void flashChipId() {
   busIdle();
   delayMicroseconds(100);
 
@@ -246,6 +246,18 @@ void flashReadStatus() {
   NOP;
   SRD = readByte();
   busIdle();
+}
+
+// Does the cart start with 0E00 0080 like a loopy cart?
+bool flashCartHeaderCheck() {
+  databusReadMode();
+  return (flashReadWord(0x0) == 0x0e00 && flashReadWord(0x2) == 0x0080);
+}
+
+// What's the internal CRC32 in the cart header? Use this as a cart ID.
+uint32_t flashCartHeaderId() {
+  databusReadMode();
+  return (flashReadWord(0x8) << 16) | flashReadWord(0xA);
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
@@ -405,7 +417,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     flashCommand(0, CMD_RESET);
 
-    len = sprintf(S, "\nFinished! Wrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
+    len = sprintf(S, "\r\nFinished! Wrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);
     busIdle();
 
@@ -428,7 +440,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   if (addr >= expectedWords * 2) {
     flashCommand(0, CMD_RESET);
 
-    len = sprintf(S, "Finished! Wrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
+    len = sprintf(S, "\r\nFinished! Wrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);
     busIdle();
 

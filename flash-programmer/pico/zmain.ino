@@ -44,6 +44,11 @@ void loop() {
   else if (buf[0] == 'I' && buf[1] == '\r') {
     // INSPECT COMMAND
     // flashId();
+    echo_all("\r\n---CART-ID---\r\n");
+    len = sprintf(S, "Cart header %s\r\n", flashCartHeaderCheck() ? "OK" : "NOT OK");
+    echo_all(S, len);
+    len = sprintf(S, "Cart ID %08x\r\n", flashCartHeaderId());
+    echo_all(S, len);
     echo_all("\r\n---FLASH-lower---\r\n");
     flashInspect(0x000000, 0x000100);
     echo_all("\r\n------\r\n");
@@ -54,6 +59,17 @@ void loop() {
     flashInspect(0x300000, 0x300100);
     echo_all("\r\n---SRAM---\r\n");
     sramInspect(0, 0x100);
+    echo_all("\r\n---FILESYSTEM---\r\n");
+    Dir dir = LittleFS.openDir("/");
+    while (dir.next()) {
+      echo_all(dir.fileName().c_str());
+      echo_all("\r\n");
+    }
+
+    FSInfo64 info;
+    LittleFS.info64(info);
+    len = sprintf(S, "%d bytes used\r\n\r\n", info.usedBytes);
+    echo_all(S, len);
   }
 
   else if (buf[0] == 'D') {
@@ -90,6 +106,32 @@ void loop() {
       digitalWriteFast(LED_BUILTIN, HIGH);
     }
   }
+
+  else if (buf[0] == 'S') {
+    // SAVE FILE MANIPULATION
+
+    // ID the header
+    uint32_t cartId = flashCartHeaderId();
+
+    // we always use <crc32>.sav which is 8 1 3 = 12 chars plus string terminator = 13 bytes
+    const char SAVE_FILENAME_LEN = 13;
+    char filename[SAVE_FILENAME_LEN];
+    sprintf(filename, "%08x.sav", cartId);
+
+    if (buf[1] == 'r' && buf[2] == '\r') {
+      // backup SRAM to file
+      len = sprintf(S, "Backing up SRAM contents to %s\r\n", filename);
+      echo_all(S, len);
+      sramSaveFile(filename);
+      echo_all("Done!\r\n");
+    } else if (buf[1] == 'w' && buf[2] == '\r') {
+      // restore SRAM from file
+      len = sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
+      echo_all(S, len);
+      bool success = sramLoadFile(filename);
+      echo_all(success ? "Success!\r\n" : "Failure!\r\n");
+    }
+  }
 }
 
 void setup() {
@@ -103,7 +145,15 @@ void setup() {
   usb_web.setStringDescriptor("Loopycart");
   usb_web.begin();
 
+  // TODO remove this if we're purely going through webUSB, which seems to be the case now
+  // TODO don't forget to update echo_all
   Serial.begin(115200);
+
+  // Filesystem. Auto formats. Make sure to reserve size in Tools > Flash Size
+  if (!LittleFS.begin()) {
+    flashLed(20);
+    HALT;
+  }
 
   // Setup IO expanders
   SPI.begin();
@@ -146,5 +196,4 @@ void setup() {
   }
 
   flashLed(4);
-
 }

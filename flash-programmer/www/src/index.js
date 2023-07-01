@@ -163,6 +163,14 @@ $('.flash-inspect').addEventListener('click', () => {
     port.send('I\r');
 });
 
+$('.sram-backup').addEventListener('click', () => {
+    port.send('Sr\r');
+});
+
+$('.sram-restore').addEventListener('click', () => {
+    port.send('Sw\r');
+});
+
 function download(filename = 'loopy.bin', bytesToDownload, serialCommand) {
     return new Promise((resolve) => {
         const dumpBuffer = new ArrayBuffer(bytesToDownload);
