@@ -208,10 +208,6 @@ $('.sram-download').addEventListener('click', () => {
     download('loopy.sav', SRAM_SIZE, `Ds\r`).then();
 });
 
-$('.cls').addEventListener('click', () => {
-    $('#receiver_lines').innerHTML = '';
-});
-
 $('.flash-erase').addEventListener('click', () => {
     // if connected
     port.send('E\r');
@@ -223,4 +219,8 @@ $('.flash-erase-one').addEventListener('click', () => {
 $('.sram-erase').addEventListener('click', () => {
     // if connected
     port.send('Es\r');
+});
+
+$('.cls').addEventListener('click', () => {
+    $('#receiver_lines').innerHTML = '';
 });

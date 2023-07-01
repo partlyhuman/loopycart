@@ -66,9 +66,12 @@ void loop() {
       echo_all("\r\n");
     }
 
-    FSInfo64 info;
-    LittleFS.info64(info);
-    len = sprintf(S, "%d bytes used\r\n\r\n", info.usedBytes);
+    // Some info in the info64 struct comes out as zeroes
+    // FSInfo64 info;
+    // LittleFS.info64(info);
+    FSInfo info;
+    LittleFS.info(info);
+    len = sprintf(S, "%d/%d bytes used, %0.0f%% full\r\ntotal bytes=%d, block size=%d, pageSize=%d\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes, info.blockSize, info.pageSize);
     echo_all(S, len);
   }
 
@@ -149,6 +152,7 @@ void setup() {
   // TODO don't forget to update echo_all
   Serial.begin(115200);
 
+  // TODO use the LittleFS constructor to set the block size, currently 16kb, ideally 8kb
   // Filesystem. Auto formats. Make sure to reserve size in Tools > Flash Size
   if (!LittleFS.begin()) {
     flashLed(20);

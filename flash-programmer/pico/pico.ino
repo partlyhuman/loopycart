@@ -38,7 +38,7 @@
 Adafruit_USBD_WebUSB usb_web;
 #define WEBUSB_HTTP 0
 #define WEBUSB_HTTPS 1
-WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "loopycart.surge.sh");
+WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "f.loopy.land");
 
 // SPI is pico's default SPI0: TX=19, SCK=18, CS=17, RX=16
 #define SPI_CS_PIN 17

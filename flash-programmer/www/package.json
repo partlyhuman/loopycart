@@ -4,8 +4,7 @@
   "description": "WebUSB interface to Floopy Drive programmer",
   "scripts": {
     "start": "parcel src/index.html",
-    "build": "parcel build src/index.html",
-    "publish": "surge dist/ loopycart.surge.sh"
+    "build": "parcel build src/index.html"
   },
   "repository": {
     "type": "git",
@@ -14,10 +13,16 @@
   "author": "Roger Braunstein",
   "license": "MIT",
   "devDependencies": {
+    "@parcel/packager-raw-url": "^2.8.3",
     "@parcel/transformer-sass": "^2.8.3",
+    "@parcel/transformer-webmanifest": "^2.8.3",
     "parcel": "^2.8.3"
   },
   "browserslist": [
     "last 2 Chrome versions"
-  ]
+  ],
+  "staticFiles": {
+    "staticPath": "static",
+    "watcherGlob": "**"
+  }
 }
