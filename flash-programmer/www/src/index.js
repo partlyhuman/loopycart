@@ -1,20 +1,26 @@
 import {Serial} from './serial';
+import {
+    getCartData,
+    getCartHeaderMagic,
+    HEADER_BLANK,
+    HEADER_LITTLE_ENDIAN, HEADER_OK,
+    HEADER_UNRECOGNIZED,
+    swapBytes
+} from "./cart";
 
 const PROTOCOL_VERSION = 2;
 const PAD = 0xffff;
 const SERIAL_BUFFER_SIZE = 64;
-
 const SRAM_SIZE = 8192;
-const ROM_SIZE_SMALL = 1 << 21;
 
 const textDecoder = new TextDecoder();
+let port = null;
 
 const $ = document.querySelector.bind(document);
 const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
 const $lines = $('#receiver_lines');
 
-let port = null;
 
 // Pads a command to the serial buffer size (64 bytes) with extra \rs
 // Do this to send a command that expects data to follow, so the command is predictable size
@@ -63,6 +69,7 @@ function addLine(text) {
 let currentReceiverLine;
 
 function appendLines(text) {
+    //TODO just innerText +=, enough of this
     const lines = text.split('\r');
     if (currentReceiverLine) {
         currentReceiverLine.innerHTML = currentReceiverLine.innerHTML + lines[0];
@@ -120,14 +127,39 @@ Serial.getPorts().then(ports => {
     }
 });
 
+function parseRom(buffer) {
+    switch (getCartHeaderMagic(buffer)) {
+        case HEADER_UNRECOGNIZED:
+        case HEADER_BLANK:
+            console.error("Does not appear to be a loopy ROM");
+            return;
+        case HEADER_LITTLE_ENDIAN:
+            console.warn("Using a little endian dump, please update your ROMs to big endian");
+            swapBytes(buffer);
+            console.assert(getCartHeaderMagic(buffer) === HEADER_OK, "Something went wrong with the swap");
+            break;
+        case HEADER_OK:
+            console.log("Header ok!");
+            break;
+        default:
+            console.error("Unhandled case");
+            break;
+    }
+
+    return getCartData(buffer);
+}
+
 
 $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
     }
-    console.log('UPLOADING!');
     let buffer = new Uint16Array(await files[0].arrayBuffer());
+    const info = parseRom(buffer);
+    if (info) console.log(`Identified ${info.name}`);
+
+    console.log('UPLOADING!');
 
     // Detect padding and un-pad
     const lastWord = buffer.findLastIndex(w => w !== PAD);
