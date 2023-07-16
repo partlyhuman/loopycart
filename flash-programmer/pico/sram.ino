@@ -5,17 +5,23 @@ inline void sramSelect() {
   digitalWriteFast(PIN_ROMCE, HIGH);
   digitalWriteFast(PIN_ROMWE, HIGH);
   digitalWriteFast(PIN_OE, HIGH);
+  digitalWriteFast(PIN_RAMWE, HIGH);
   digitalWriteFast(PIN_RAMCS1, LOW);
   digitalWriteFast(PIN_RAMCS2, HIGH);
 }
 
 inline void sramDeselect() {
+  digitalWriteFast(PIN_ROMCE, LOW);
+  digitalWriteFast(PIN_ROMWE, HIGH);
+  digitalWriteFast(PIN_OE, HIGH);
+  digitalWriteFast(PIN_RAMWE, HIGH);
   digitalWriteFast(PIN_RAMCS1, HIGH);
-  digitalWriteFast(PIN_RAMCS2, LOW);
+  digitalWriteFast(PIN_RAMCS2, HIGH);
 }
 
 uint8_t sramReadByte(uint32_t addr) {
   // braindead 1 cycle read (address controlled)
+  databusReadMode();
   setAddress(addr);
   // tAA | Address access time | 55ns
   NOP;
@@ -26,6 +32,7 @@ uint8_t sramReadByte(uint32_t addr) {
   NOP;
   NOP;
   NOP;
+
   return readByte();
 }
 
@@ -34,9 +41,11 @@ void sramWriteByte(uint32_t addr, uint8_t byte) {
   databusReadMode();
 
   setAddress(addr);
+  NOP;
+  NOP;
+  NOP;
 
   digitalWriteFast(PIN_RAMWE, LOW);
-  // tWHZ | Write to output in High-Z | 20ns
   NOP;
   NOP;
   NOP;
