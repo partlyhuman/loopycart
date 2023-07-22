@@ -4222,8 +4222,8 @@
     )
   )
 
-  (symbol (lib_id "Diode:BAV70W") (at 137.16 29.21 0) (mirror y) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+  (symbol (lib_id "Diode:BAV70W") (at 137.16 29.21 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no)
     (uuid 69873523-381f-4820-af23-725ee83a47ce)
     (property "Reference" "D1" (at 137.16 22.86 0)
       (effects (font (size 1.27 1.27)))
@@ -4240,9 +4240,9 @@
     (property "Notes" "" (at 137.16 29.21 0)
       (effects (font (size 1.27 1.27)))
     )
-    (pin "1" (uuid 24a7eb0e-1078-440d-8446-4eb600dfe106))
-    (pin "2" (uuid a2327549-38d0-45dd-b72a-46df5f8ff406))
-    (pin "3" (uuid adb6bbe8-b3d9-4043-bebb-cda1cd1a482c))
+    (pin "1" (uuid 6d4601ea-065d-46a2-a45e-2b22babe01f4))
+    (pin "2" (uuid c5be9e5f-c74c-4718-89cf-b4875c43a21c))
+    (pin "3" (uuid 6ea9f0c3-230e-4c8c-9126-1ebee3e3e96f))
     (instances
       (project "flash-32mbit"
         (path "/5081f4fb-0c92-4cfc-8c52-39777c6d96ed"
