@@ -636,6 +636,10 @@
       {
         "netclass": "Default",
         "pattern": "(VCC|GND)"
+      },
+      {
+        "netclass": "Bus",
+        "pattern": "/{?.*(WE|CE|OE|INSERTED|STS)}?"
       }
     ]
   },
