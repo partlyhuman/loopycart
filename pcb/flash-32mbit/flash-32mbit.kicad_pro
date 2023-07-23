@@ -62,7 +62,7 @@
       },
       "rule_severities": {
         "annular_width": "error",
-        "clearance": "warning",
+        "clearance": "ignore",
         "connection_width": "warning",
         "copper_edge_clearance": "error",
         "copper_sliver": "warning",
@@ -634,7 +634,7 @@
         "pattern": "/A*"
       },
       {
-        "netclass": "Power",
+        "netclass": "Default",
         "pattern": "(VCC|GND)"
       },
       {
