@@ -62,7 +62,7 @@
       },
       "rule_severities": {
         "annular_width": "error",
-        "clearance": "warning",
+        "clearance": "ignore",
         "connection_width": "warning",
         "copper_edge_clearance": "error",
         "copper_sliver": "warning",
@@ -552,14 +552,14 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.5,
+        "clearance": 0.15,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
         "line_style": 0,
         "microvia_diameter": 0.3,
         "microvia_drill": 0.1,
-        "name": "Bus1",
+        "name": "Bus",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.25,
@@ -569,14 +569,31 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.15,
+        "clearance": 0.45,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
         "line_style": 0,
         "microvia_diameter": 0.3,
         "microvia_drill": 0.1,
-        "name": "Bus2",
+        "name": "Bus_Spaced",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.25,
+        "via_diameter": 0.6,
+        "via_drill": 0.4,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.8,
+        "diff_pair_gap": 0.25,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "Bus_Spaced_Wider",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.25,
@@ -607,7 +624,24 @@
     },
     "net_colors": null,
     "netclass_assignments": null,
-    "netclass_patterns": []
+    "netclass_patterns": [
+      {
+        "netclass": "Bus",
+        "pattern": "/D*"
+      },
+      {
+        "netclass": "Bus",
+        "pattern": "/A*"
+      },
+      {
+        "netclass": "Default",
+        "pattern": "(VCC|GND)"
+      },
+      {
+        "netclass": "Bus",
+        "pattern": "/{?.*(WE|CE|OE|INSERTED|STS)}?"
+      }
+    ]
   },
   "pcbnew": {
     "last_paths": {
