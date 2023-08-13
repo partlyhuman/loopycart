@@ -5128,7 +5128,7 @@
     (property "Value" "~" (at 229.87 38.1 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "LOOPY_Cart:LOOPY-Edge-Connector" (at 229.87 38.1 0)
+    (property "Footprint" "LOOPY_Cart:LOOPY_Cart_Edge" (at 229.87 38.1 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "" (at 229.87 38.1 0)
