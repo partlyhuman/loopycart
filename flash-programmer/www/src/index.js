@@ -11,7 +11,7 @@ import {
 const PROTOCOL_VERSION = 2;
 const PAD = 0xffff;
 const SERIAL_BUFFER_SIZE = 64;
-const SRAM_SIZE = 8192;
+const SRAM_SIZE = 1024 * 32;
 
 const textDecoder = new TextDecoder();
 let port = null;
@@ -181,9 +181,12 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
     console.log('UPLOADING!');
     let buffer = new Uint8Array(await files[0].arrayBuffer());
 
-    if (buffer.byteLength !== SRAM_SIZE) {
-        console.error(`Save expected to be ${SRAM_SIZE} bytes, was ${buffer.byteLength}`);
+    if (buffer.byteLength > SRAM_SIZE) {
+        console.error(`Save expected to be ${SRAM_SIZE} bytes or less, was ${buffer.byteLength}`);
         return;
+    }
+    if (buffer.byteLength % 1024 !== 0) {
+        console.warn(`Save expected to be divisible by 1kb`);
     }
 
     port.send(padCommand(`Ps`));

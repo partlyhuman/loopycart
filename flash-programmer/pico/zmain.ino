@@ -97,7 +97,7 @@ void loop() {
       stopwatch = millis();
       busIdle();
 
-      digitalWriteFast(LED_BUILTIN, HIGH);
+      ledColor(BLUE);
     } else if (buf[1] == 's' && buf[2] == '\r') {
       // program SRAM always uses full 8kb
       echo_all("Programming SRAM\r");
@@ -106,7 +106,7 @@ void loop() {
       stopwatch = millis();
       databusWriteMode();
       sramSelect();
-      digitalWriteFast(LED_BUILTIN, HIGH);
+      ledColor(BLUE);
     }
   }
 
@@ -138,8 +138,7 @@ void loop() {
 }
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWriteFast(LED_BUILTIN, LOW);
+  led.begin();
 
   // USB setup
   TinyUSB_Device_Init(0);
@@ -161,43 +160,51 @@ void setup() {
 
   // Setup IO expanders
   SPI.begin();
-  if (!mcpA.Init() || !mcpD.Init()) {
-    flashLed(50);
-    HALT;
+  int problems = 0;
+  if (!mcpAddr0.Init()) {
+    len = sprintf(S, "%s mcpAddr0 fail", S);
+    problems++;
+    ledColor(0x800000);
+    delay(2000);
+    ledColor(0);
+    delay(500);
+  }
+  if (!mcpAddr1.Init()) {
+    len = sprintf(S, "%s mcpAddr1 fail", S);
+    problems++;
+    ledColor(0x804000);
+    delay(2000);
+    ledColor(0);
+    delay(500);
+  }
+  if (!mcpData.Init()) {
+    len = sprintf(S, "%s mcpData fail", S);
+    problems++;
+    ledColor(0x800040);
+    delay(2000);
+    ledColor(0);
+    delay(500);
   }
   // Rated for 10MHZ
-  mcpA.setSPIClockSpeed(10000000);
-  mcpD.setSPIClockSpeed(10000000);
-  ioWriteMode(&mcpD);
-  // Address bus always in write mode
-  ioWriteMode(&mcpA);
+  const int32_t SPI_SPEED = 10000000;
+  mcpAddr0.setSPIClockSpeed(SPI_SPEED);
+  mcpAddr1.setSPIClockSpeed(SPI_SPEED);
+  mcpData.setSPIClockSpeed(SPI_SPEED);
+  ioWriteMode(&mcpAddr0);
+  ioWriteMode(&mcpAddr1);
+  ioWriteMode(&mcpData);
   Serial.println("IO expanders initialized");
 
-  pinMode(PIN_RAMCS2, OUTPUT);
-  pinMode(PIN_RAMCS1, OUTPUT);
-  pinMode(PIN_RAMWE, OUTPUT);
-
-  // Setup ROM pins
-  pinMode(PIN_ROMCE, OUTPUT);
-  pinMode(PIN_ROMWE, OUTPUT);
-  pinMode(PIN_OE, OUTPUT);
-
-  // Setup overflow address pins
-  pinMode(PIN_A0, OUTPUT);
-  pinMode(PIN_A17, OUTPUT);
-  pinMode(PIN_A18, OUTPUT);
-  pinMode(PIN_A19, OUTPUT);
-  pinMode(PIN_A20, OUTPUT);
-  pinMode(PIN_A21, OUTPUT);
+  pinMode(PIN_STATUS, INPUT_PULLUP);
 
   sramDeselect();
   busIdle();
-
-  flashLed(2);
 
   while (!TinyUSBDevice.mounted()) {
     delay(1);
   }
 
-  flashLed(4);
+  ledColor(0xffffff);
+  delay(100);
+  ledColor(0);
 }

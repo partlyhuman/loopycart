@@ -1,22 +1,12 @@
-#define SRAM_ADDRBITS 13
-const uint32_t SRAM_SIZE = 1 << SRAM_ADDRBITS;
+#define SRAM_ADDRBITS 15
+const uint32_t SRAM_SIZE = 1 << SRAM_ADDRBITS; // minus one
 
 inline void sramSelect() {
-  digitalWriteFast(PIN_ROMCE, HIGH);
-  digitalWriteFast(PIN_ROMWE, HIGH);
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_RAMWE, HIGH);
-  digitalWriteFast(PIN_RAMCS1, LOW);
-  digitalWriteFast(PIN_RAMCS2, HIGH);
+  setControl(RAMCE);
 }
 
 inline void sramDeselect() {
-  digitalWriteFast(PIN_ROMCE, LOW);
-  digitalWriteFast(PIN_ROMWE, HIGH);
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_RAMWE, HIGH);
-  digitalWriteFast(PIN_RAMCS1, HIGH);
-  digitalWriteFast(PIN_RAMCS2, HIGH);
+  setControl(ROMCE);
 }
 
 uint8_t sramReadByte(uint32_t addr) {
@@ -45,37 +35,35 @@ void sramWriteByte(uint32_t addr, uint8_t byte) {
   NOP;
   NOP;
 
-  digitalWriteFast(PIN_RAMWE, LOW);
+  setControl(RAMCE & RAMWE);
   NOP;
   NOP;
   NOP;
 
   databusWriteMode();
-  mcpD.setPort(byte, A);
+  mcpData.setPort(byte, A);
 
-  digitalWriteFast(PIN_RAMWE, HIGH);
+  setControl(RAMCE);
 }
 
 void sramSaveFile(const char* filename) {
   File file = LittleFS.open(filename, "w");
 
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  ledColor(BLUE);
   sramSelect();
   databusReadMode();
 
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
-  digitalWriteFast(PIN_OE, LOW);
+  setControl(RAMCE & OE);
 
   for (uint32_t addr = 0; addr < SRAM_SIZE; addr++) {
     uint8_t byte = sramReadByte(addr);
     file.write(&byte, 1);
   }
 
-  digitalWriteFast(PIN_OE, HIGH);
-
   databusWriteMode();
   sramDeselect();
-  digitalWriteFast(LED_BUILTIN, LOW);
+  ledColor(0);
 
   file.flush();
   file.close();
@@ -95,11 +83,9 @@ bool sramLoadFile(const char* filename) {
     return false;
   }
 
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  ledColor(BLUE);
   sramSelect();
   databusWriteMode();
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_RAMWE, HIGH);
 
   // read 1kb at a time?
   const size_t CHUNK_SIZE = 1 << 10;
@@ -115,7 +101,7 @@ bool sramLoadFile(const char* filename) {
   }
 
   sramDeselect();
-  digitalWriteFast(LED_BUILTIN, LOW);
+  ledColor(0);
 
   file.close();
   return true;
@@ -127,7 +113,7 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
   databusReadMode();
 
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
-  digitalWriteFast(PIN_OE, LOW);
+  setControl(RAMCE & OE);
 
   for (uint32_t addr = starting; addr < upto; addr++) {
     if (addr % 0x10 == 0) {
@@ -139,44 +125,38 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
     echo_all(S, len);
   }
 
-  digitalWriteFast(PIN_OE, HIGH);
-
   sramDeselect();
   databusWriteMode();
   echo_all("\r\n\r\n", 4);
 }
 
 void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  ledColor(BLUE);
   sramSelect();
   databusReadMode();
 
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
-  digitalWriteFast(PIN_OE, LOW);
+  setControl(RAMCE & OE);
 
   for (uint32_t addr = starting; addr < upto; addr++) {
     uint8_t byte = sramReadByte(addr);
     usb_web.write(&byte, 1);
   }
 
-  digitalWriteFast(PIN_OE, HIGH);
-
   sramDeselect();
   databusWriteMode();
   // echo_all("\r\n\r\n", 4);
-  digitalWriteFast(LED_BUILTIN, LOW);
+  ledColor(0);
 }
 
 void sramErase() {
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  ledColor(BLUE);
   echo_all("Erasing SRAM");
 
   stopwatch = millis();
 
   sramSelect();
   databusWriteMode();
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_RAMWE, HIGH);
 
   for (uint32_t addr = 0; addr < SRAM_SIZE; addr++) {
     if (addr % 0x100 == 0) {
@@ -189,7 +169,7 @@ void sramErase() {
   echo_all(S, len);
 
   sramDeselect();
-  digitalWriteFast(LED_BUILTIN, LOW);
+  ledColor(0);
 }
 
 // Returns whether programming should continue
@@ -201,7 +181,7 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr) {
 
   if (addr >= SRAM_BYTES) {
     sramDeselect();
-    digitalWriteFast(LED_BUILTIN, LOW);
+    ledColor(0);
 
     len = sprintf(S, "Finished! Wrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);

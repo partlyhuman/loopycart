@@ -7,23 +7,17 @@ inline uint32_t zeroWithBank(uint32_t addr) {
 // Bus states - Sharp flash uses 3 wire control and these are predefined states
 
 inline void busRead() {
-  digitalWriteFast(PIN_ROMBE0, LOW);
-  digitalWriteFast(PIN_OE, LOW);
-  digitalWriteFast(PIN_ROMWE, HIGH);
+  setControl(ROMCE & OE);
   databusReadMode();
 }
 
 inline void busWrite() {
-  digitalWriteFast(PIN_ROMBE0, LOW);
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_ROMWE, LOW);
+  setControl(ROMCE & ROMWE);
   databusWriteMode();
 }
 
 inline void busIdle() {
-  digitalWriteFast(PIN_ROMBE0, HIGH);
-  digitalWriteFast(PIN_OE, HIGH);
-  digitalWriteFast(PIN_ROMWE, HIGH);
+  setControl(IDLE);
   databusWriteMode();
 }
 
@@ -94,6 +88,7 @@ void flashCommand(uint32_t addr, uint16_t data) {
   busIdle();
 }
 
+// TODO involve STS pin now that we have access to it
 // returns TRUE if OK
 bool flashStatusCheck(uint32_t addr) {
   bool ok = true;
@@ -129,7 +124,7 @@ bool flashStatusCheck(uint32_t addr) {
 // Major functions
 
 void flashEraseBank(int bank) {
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  ledColor(BLUE);
 
   int32_t bankAddress = bank ? (1 << 21) : 0;
   len = sprintf(S, "Erase bank address %06xh\r", bankAddress);
@@ -173,7 +168,7 @@ void flashEraseBank(int bank) {
   //   echo_all("Bank Erase successful!\r");
   // }
 
-  digitalWriteFast(LED_BUILTIN, LOW);
+  ledColor(0);
   // clear status register
   flashCommand(0, 0x50);
   delayMicroseconds(100);
@@ -285,12 +280,12 @@ void flashDump(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
   delayMicroseconds(100);
   busRead();
 
-  digitalWriteFast(LED_BUILTIN, HIGH);
+  ledColor(BLUE);
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     uint16_t word = flashReadWord(addr);
     usb_web.write((uint8_t *)&word, 2);
   }
-  digitalWriteFast(LED_BUILTIN, LOW);
+  ledColor(0);
   busIdle();
 }
 
@@ -421,7 +416,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     echo_all(S, len);
     busIdle();
 
-    digitalWriteFast(LED_BUILTIN, LOW);
+    ledColor(0);
     return false;
   }
 
@@ -444,7 +439,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     echo_all(S, len);
     busIdle();
 
-    digitalWriteFast(LED_BUILTIN, LOW);
+    ledColor(0);
     return false;
   }
 
