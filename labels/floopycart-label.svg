@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg5"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2">
+    <marker
+       id="DistanceX"
+       orient="auto"
+       refX="0.0"
+       refY="0.0"
+       style="overflow:visible">
+      <path
+         d="M 3,-3 L -3,3 M 0,-5 L  0,5"
+         style="stroke:#000000; stroke-width:0.5"
+         id="path842" />
+    </marker>
+    <pattern
+       id="Hatch"
+       patternUnits="userSpaceOnUse"
+       width="8"
+       height="8"
+       x="0"
+       y="0">
+      <path
+         d="M8 4 l-4,4"
+         stroke="#000000"
+         stroke-width="0.25"
+         linecap="square"
+         id="path845" />
+      <path
+         d="M6 2 l-4,4"
+         stroke="#000000"
+         stroke-width="0.25"
+         linecap="square"
+         id="path847" />
+      <path
+         d="M4 0 l-4,4"
+         stroke="#000000"
+         stroke-width="0.25"
+         linecap="square"
+         id="path849" />
+    </pattern>
+    <symbol
+       id="*MODEL_SPACE" />
+    <symbol
+       id="*PAPER_SPACE" />
+  </defs>
+  <g
+     id="layer1">
+    <g
+       id="g872"
+       transform="matrix(0.26458333,0,0,0.26458333,24.371349,-146.73267)">
+      <path
+         d="m -74.07874,1039.937 a 12.094488,12.094488 0 0 0 -12.094488,-12.0945 h -52.913382 a 12.094488,12.094488 0 0 0 -12.09449,12.0945 v 6.6142 a 12.094488,12.094488 0 0 0 12.09449,12.0945 h 52.913382 a 12.094488,12.094488 0 0 0 12.094488,-12.0945 z"
+         style="fill:none;stroke:#000000"
+         id="path856" />
+      <path
+         d="m 151.1811,1039.937 a 12.094488,12.094488 0 0 0 -12.09449,-12.0945 H 86.173228 A 12.094488,12.094488 0 0 0 74.07874,1039.937 v 6.6142 a 12.094488,12.094488 0 0 0 12.094488,12.0945 h 52.913382 a 12.094488,12.094488 0 0 0 12.09449,-12.0945 z"
+         style="fill:none;stroke:#000000"
+         id="path858" />
+      <path
+         d="m -225.63779,960.56693 v 302.17877 l 28.90782,28.9078 h 393.45994 l 28.90782,-28.9078 V 960.56693 h -26.07874 v -28.34646 h -399.1181 v 28.34646 z"
+         style="fill:none;stroke:#000000"
+         id="path860" />
+      <path
+         d="m 158.74016,1087.2915 h -317.48032 a 30.23622,30.23622 0 0 0 -30.23622,30.2362 v 109.6063 a 30.23622,30.23622 0 0 0 30.23622,30.2363 h 317.48032 a 30.23622,30.23622 0 0 0 30.23622,-30.2363 v -109.6063 a 30.23622,30.23622 0 0 0 -30.23622,-30.2362 z"
+         style="fill:none;stroke:#000000"
+         id="path862" />
+      <path
+         style="fill:none;stroke:#000000"
+         d="m 0,932.22 v 310.14"
+         id="path864" />
+      <path
+         d="m 192.75591,1227.134 v -109.6063 a 34.015748,34.015748 0 0 0 -34.01575,-34.0157 h -317.48032 a 34.015748,34.015748 0 0 0 -34.01575,34.0157 v 109.6063 a 34.015748,34.015748 0 0 0 34.01575,34.0158 h 317.48032 a 34.015748,34.015748 0 0 0 34.01575,-34.0158 z"
+         style="fill:none;stroke:#000000"
+         id="path866" />
+      <path
+         style="fill:none;stroke:#000000"
+         d="M 188.976,1172.33 H -188.976"
+         id="path868" />
+      <path
+         style="fill:none;stroke:#000000"
+         d="M 0,1257.37 V 1087.29"
+         id="path870" />
+    </g>
+  </g>
+</svg>
