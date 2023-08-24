@@ -1,23 +1,60 @@
 import LoopyCsvText from "./data/cartDatabase";
 import {sprintf} from "sprintf-js";
 
+export const OFFSET_ROM = 0x0E000000;
+export const OFFSET_SRAM = 0x02000000;
+
+export const ADDR_MAGIC = 0x0;
+export const ADDR_ROM_END = 0x000004;
+export const ADDR_CHECKSUM = 0x000008;
+export const ADDR_SRAM_START = 0x000010;
+export const ADDR_SRAM_END = 0x000014;
+export const ADDR_HEADER_END = 0x000018;
+
 // Index by internal CRC *as a string*
 const cartDatabase = {};
 for (let [name, product, mbit, fullCrc, internalCrc] of LoopyCsvText.split("\n").filter(x => !x.startsWith('#') && x.trim().length > 0).map(line => line.split(',').map(s => s.trim()))) {
     cartDatabase[internalCrc.toLowerCase()] = {name, product, mbit, fullCrc, internalCrc};
 }
 
-export function getInternalCrc(buffer, littleEndian = false) {
-    if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
-    const view = new DataView(buffer, 0x8, 4);
-    return view.getUint32(0, littleEndian);
+function getHeaderUint32(buffer, addr, littleEndian = false) {
+    return new DataView(buffer, addr, 4).getUint32(0, littleEndian);
 }
 
-export function getCartData(buffer) {
+export function getSramSize(buffer) {
+    return (getHeaderUint32(buffer, ADDR_SRAM_END) - getHeaderUint32(buffer, ADDR_SRAM_START));
+}
+
+export function getRomSize(buffer) {
+    return (getHeaderUint32(buffer, ADDR_ROM_END) + 2 - OFFSET_ROM);
+}
+
+export function getChecksum(buffer) {
+    return getHeaderUint32(buffer, ADDR_CHECKSUM);
+}
+
+
+export function lookupCartDatabase(checksum) {
+    if (typeof(checksum) === 'number') {
+        checksum = checksum.toString(16);
+    }
+    return cartDatabase[checksum];
+}
+
+export function getCartDataFromDatabase(buffer) {
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
-    const internalCrcString = sprintf("%08x", getInternalCrc(buffer));
+    const internalCrcString = sprintf("%08x", getChecksum(buffer));
     console.log("Cart ID", internalCrcString);
     return cartDatabase[internalCrcString];
+}
+
+export function getCartDataFromHeader(buffer) {
+    if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
+    return {
+        checksum: getChecksum(buffer),
+        sramSize: getSramSize(buffer),
+        romSize: getRomSize(buffer),
+    };
 }
 
 export const HEADER_UNRECOGNIZED = 0;

@@ -20,7 +20,6 @@ Adafruit_USBD_WebUSB usb_web;
 #define WEBUSB_HTTPS 1
 WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "f.loopy.land");
 
-// SPI is pico's default SPI0: TX=19, SCK=18, CS=17, RX=16
 #define SPI_CS_PIN 5
 // ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
 #define MCP_NO_RESET_PIN 100
@@ -58,15 +57,6 @@ void flashLed(int n, int d = 100) {
   }
 }
 
-// void flashLed(int n, int d = 100) {
-//   for (int i = 0; i < n; i++) {
-//     ledColor(BLUE);
-//     delay(d / 2);
-//     ledColor(0);
-//     delay(d / 2);
-//   }
-// }
-
 // Changing the port mode is superslow so let's cache it
 enum DataBusMode { READ,
                    WRITE };
@@ -98,7 +88,9 @@ inline void databusWriteMode() {
 inline void setAddress(uint32_t addr) {
   // A0-A15
   mcpAddr0.setPort(addr & 0xff, (addr >> 8) & 0xff);
-
+  //mcpAddr0.setPort(addr & 0xff, A);
+  //mcpAddr0.setPort((addr >> 8) & 0xff, B);
+  
   // A16-A21
   mcpAddr1.setPort((addr >> 16) & 0xff, A);
 }
@@ -129,6 +121,8 @@ inline uint8_t readByte() {
 inline void writeWord(uint32_t addr, uint16_t word) {
   setAddress(addr);
   mcpData.setPort(word & 0xff, (word >> 8) & 0xff);
+  //mcpData.setPort(word & 0xff, A);
+  //mcpData.setPort((word >> 8) & 0xff, B);
 }
 
 inline void writeByte(uint32_t addr, uint8_t byte) {

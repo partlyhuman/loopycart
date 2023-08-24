@@ -1,10 +1,13 @@
 import {Serial} from './serial';
 import {
-    getCartData,
+    ADDR_HEADER_END,
+    getCartDataFromHeader,
     getCartHeaderMagic,
     HEADER_BLANK,
-    HEADER_LITTLE_ENDIAN, HEADER_OK,
+    HEADER_LITTLE_ENDIAN,
+    HEADER_OK,
     HEADER_UNRECOGNIZED,
+    lookupCartDatabase,
     swapBytes
 } from "./cart";
 
@@ -20,7 +23,7 @@ const $ = document.querySelector.bind(document);
 const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
 const $lines = $('#receiver_lines');
-
+const $progress = $('#progress');
 
 // Pads a command to the serial buffer size (64 bytes) with extra \rs
 // Do this to send a command that expects data to follow, so the command is predictable size
@@ -84,14 +87,25 @@ function appendLines(text) {
     $lines.scrollTo(0, $lines.scrollHeight, {smooth: true});
 }
 
+function setProgress(n) {
+    if (typeof(n) === 'number') {
+        $progress.indeterminate = false;
+        $progress.value = n;
+    } else if (typeof(n) === 'boolean') {
+        $progress.indeterminate = true;
+    }
+}
+
 async function connect() {
     try {
         await port.connect();
         $statusDisplay.textContent = '';
         $connectButton.textContent = 'Disconnect';
         firstData = '';
-        port.onReceive = versionCheck;
-        port.onReceiveError = error => console.error(error);
+        // NOTE Temporarily turned off version check because it prevents connection on reload (version only echoed when pico first connects?)
+        // port.onReceive = versionCheck;
+        // port.onReceiveError = error => console.error(error);
+        port.onReceive = serialEcho;
     } catch (error) {
         $statusDisplay.textContent = error;
     }
@@ -146,7 +160,7 @@ function parseRom(buffer) {
             break;
     }
 
-    return getCartData(buffer);
+    return lookupCartDatabase(getCartDataFromHeader(buffer).checksum);
 }
 
 
@@ -168,6 +182,24 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     }
 
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
+
+
+    port.onReceive = (data) => {
+        const str = textDecoder.decode(data);
+        appendLines(str);
+
+        const addrBytes = parseInt(str, 16);
+        if (!isNaN(addrBytes)) {
+            setProgress(addrBytes / buffer.byteLength);
+        }
+
+        if (addrBytes >= buffer.byteLength || str.toLowerCase().includes('finished')) {
+            console.log('Done upload!');
+            port.onReceive = serialEcho;
+            setProgress(0);
+        }
+    }
+
 
     port.send(padCommand(`P${buffer.length}`));
     port.send(buffer);
@@ -194,7 +226,16 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
 });
 
 
-$('.flash-inspect').addEventListener('click', () => {
+$('.flash-inspect').addEventListener('click', async () => {
+    const header = await downloadAndParseCartHeader();
+    console.log(header);
+    appendLines(`Parsed header: ${JSON.stringify(header)}\r\n`);
+    const data = lookupCartDatabase(header.checksum);
+    if (data) {
+        console.log(data);
+        appendLines(`Identified in database as: ${JSON.stringify(data)}\r\n\r\n`);
+    }
+
     port.send('I\r');
 });
 
@@ -206,27 +247,36 @@ $('.sram-restore').addEventListener('click', () => {
     port.send('Sw\r');
 });
 
-function download(filename = 'loopy.bin', bytesToDownload, serialCommand) {
+
+async function downloadAndParseCartHeader() {
+    return getCartDataFromHeader(await download(ADDR_HEADER_END, `D${ADDR_HEADER_END.toString(10)}\r`));
+}
+
+function download(bytesToDownload, serialCommand) {
     return new Promise((resolve) => {
         const dumpBuffer = new ArrayBuffer(bytesToDownload);
+        console.log(`Dumping ${bytesToDownload} bytes...`);
         let addrBytes = 0;
 
-        port.onReceive = (data) => {
+        port.onReceive = (/** @type DataView */ data) => {
             const dumpView = new Uint8Array(dumpBuffer, addrBytes, data.byteLength);
-            const packetView = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+            const packetView = new Uint8Array(data.buffer, 0, data.buffer.byteLength);
+            console.assert(ArrayBuffer.isView(dumpView), 'Expected dumpView to be a view into the shared dumpBuffer');
+            console.assert(ArrayBuffer.isView(packetView), 'Expected packetView to be a view into the shared data.buffer');
+
+            // Should this be necessary?
+            swapBytes(packetView);
+
             dumpView.set(packetView);
-            addrBytes += data.byteLength;
-            console.log(addrBytes);
+            addrBytes += packetView.byteLength;
+
+            setProgress(addrBytes / bytesToDownload);
+
             if (addrBytes >= dumpBuffer.byteLength) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
-                a.download = filename;
-                a.innerText = 'Download dump';
-                a.click();
-
+                console.log('Done download!');
                 port.onReceive = serialEcho;
-
-                resolve();
+                setProgress(0);
+                resolve(dumpBuffer);
             }
         }
 
@@ -234,13 +284,23 @@ function download(filename = 'loopy.bin', bytesToDownload, serialCommand) {
     });
 }
 
-$('.flash-download').addEventListener('click', () => {
-    // 2MB dump
-    const expectedWords = 1 << 20;
-    download('loopy-rom.bin', expectedWords * 2, `D${expectedWords}\r`).then();
+function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
+    a.download = filename;
+    a.innerText = 'Download dump';
+    a.click();
+}
+
+$('.flash-download').addEventListener('click', async () => {
+    const header = await downloadAndParseCartHeader();
+    console.log(header);
+    saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
 });
+
 $('.sram-download').addEventListener('click', () => {
-    download('loopy.sav', SRAM_SIZE, `Ds\r`).then();
+    // TODO SRAM_SIZE does vary, use header (but needs to change on firmware too)
+    download(SRAM_SIZE, `Ds\r`).then(buffer => saveBufferToFile(buffer, 'loopy.sav'));
 });
 
 $('.flash-erase').addEventListener('click', () => {
