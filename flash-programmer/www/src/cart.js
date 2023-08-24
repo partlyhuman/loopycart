@@ -22,7 +22,9 @@ function getHeaderUint32(buffer, addr, littleEndian = false) {
 }
 
 export function getSramSize(buffer) {
-    return (getHeaderUint32(buffer, ADDR_SRAM_END) - getHeaderUint32(buffer, ADDR_SRAM_START));
+    const sramStart = getHeaderUint32(buffer, ADDR_SRAM_START);
+    console.assert(sramStart === OFFSET_SRAM, `Unexpected SRAM start ${sramStart.toString(16)}h`);
+    return (getHeaderUint32(buffer, ADDR_SRAM_END) + 1 - sramStart);
 }
 
 export function getRomSize(buffer) {
