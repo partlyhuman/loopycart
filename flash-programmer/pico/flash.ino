@@ -188,6 +188,8 @@ void flashErase() {
 
   len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
+
+  echo_all("!OK\r\n");
 }
 
 void flashClearLocks() {
@@ -338,6 +340,9 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     long retries = 0;
     SRD = 0;
     do {
+      ledColor(0x000020);
+      // delay(1);
+
       flashCommand(addr, 0xe8);
       flashReadStatus();
 
@@ -348,12 +353,13 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
         if (++retries > 1000) {
           len = sprintf(S, "\r\nTIMEOUT @ %06x\r\n", addr);
           echo_all(S, len);
-          // XXX Don't actually return here
-          return true;
+          ledColor(0xFF0000);
+          HALT;
         }
-        delayMicroseconds(1);
+        delayMicroseconds(10);
         continue;
       }
+
 
       // for bigger errors, have a bigger delay before retry
       if (SR(1) == SR(4) == 1) {
@@ -413,13 +419,16 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     flashCommand(0, CMD_RESET);
 
-    len = sprintf(S, "\r\nFinished! Wrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
+    len = sprintf(S, "\r\nWrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);
+    
     busIdle();
 
-    ledColor(0);
+    echo_all("!OK\r\n");
     return false;
   }
+
+  ledColor(BLUE);
 
   return true;
 #else
@@ -436,11 +445,12 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   if (addr >= expectedWords * 2) {
     flashCommand(0, CMD_RESET);
 
-    len = sprintf(S, "\r\nFinished! Wrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
+    len = sprintf(S, "\r\nWrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);
     busIdle();
 
     ledColor(0);
+    echo_all("!OK\r\n");
     return false;
   }
 

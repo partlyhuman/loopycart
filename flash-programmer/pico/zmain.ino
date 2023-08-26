@@ -6,6 +6,7 @@ void loop() {
   static uint32_t expectedWords;
 
   if (!usb_web.available()) {
+    // ledColor(0xe20d86);
     delay(1);
     return;
   }
@@ -16,10 +17,14 @@ void loop() {
     return;
   }
 
+  ledColor(0);
+
   if (isProgrammingFlash) {
     isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, expectedWords);
+    return;
   } else if (isProgrammingSram) {
     isProgrammingSram = sramWriteBuffer(buf, bufLen, addr);
+    return;
   }
 
   else if (buf[0] == 'E') {
@@ -135,6 +140,12 @@ void loop() {
       echo_all(success ? "Success!\r\n" : "Failure!\r\n");
     }
   }
+
+  else {
+    // Received unknown command OR it's possible we returned to idle state before the sender was done sending?
+    echo_all("Unrecognized command\r\n");
+    ledColor(0xce4e04); // orange
+  }
 }
 
 void setup() {
@@ -185,6 +196,7 @@ void setup() {
     ledColor(0);
     delay(500);
   }
+
   // Rated for 10MHZ
   const int32_t SPI_SPEED = 10000000;
   mcpAddr0.setSPIClockSpeed(SPI_SPEED);

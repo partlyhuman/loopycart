@@ -88,8 +88,8 @@ inline void databusWriteMode() {
 inline void setAddress(uint32_t addr) {
   // A0-A15
   mcpAddr0.setPort(addr & 0xff, (addr >> 8) & 0xff);
-  //mcpAddr0.setPort(addr & 0xff, A);
-  //mcpAddr0.setPort((addr >> 8) & 0xff, B);
+  // mcpAddr0.setPort(addr & 0xff, A);
+  // mcpAddr0.setPort((addr >> 8) & 0xff, B);
   
   // A16-A21
   mcpAddr1.setPort((addr >> 16) & 0xff, A);
@@ -121,8 +121,8 @@ inline uint8_t readByte() {
 inline void writeWord(uint32_t addr, uint16_t word) {
   setAddress(addr);
   mcpData.setPort(word & 0xff, (word >> 8) & 0xff);
-  //mcpData.setPort(word & 0xff, A);
-  //mcpData.setPort((word >> 8) & 0xff, B);
+  // mcpData.setPort(word & 0xff, A);
+  // mcpData.setPort((word >> 8) & 0xff, B);
 }
 
 inline void writeByte(uint32_t addr, uint8_t byte) {

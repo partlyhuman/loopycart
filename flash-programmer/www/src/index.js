@@ -32,7 +32,11 @@ function padCommand(str) {
 }
 
 function serialEcho(data) {
-    appendLines(textDecoder.decode(data));
+    const text = textDecoder.decode(data);
+    if (text.match(/^!OK\b/m)) {
+        setProgress(false);
+    }
+    appendLines(text);
 }
 
 let firstData;
@@ -88,11 +92,19 @@ function appendLines(text) {
 }
 
 function setProgress(n) {
-    if (typeof(n) === 'number') {
+    $progress.innerText = n;
+    if (typeof (n) === 'number') {
+        $progress.classList.remove('indeterminate');
         $progress.indeterminate = false;
         $progress.value = n;
-    } else if (typeof(n) === 'boolean') {
+    } else if (typeof (n) === 'boolean' && n === true) {
         $progress.indeterminate = true;
+        $progress.removeAttribute('value');
+        $progress.classList.add('indeterminate');
+    } else {
+        $progress.classList.remove('indeterminate');
+        $progress.indeterminate = false;
+        $progress.value = 0;
     }
 }
 
@@ -163,6 +175,51 @@ function parseRom(buffer) {
     return lookupCartDatabase(getCartDataFromHeader(buffer).checksum);
 }
 
+
+async function downloadAndParseCartHeader() {
+    return getCartDataFromHeader(await download(ADDR_HEADER_END, `D${ADDR_HEADER_END.toString(10)}\r`));
+}
+
+function download(bytesToDownload, serialCommand) {
+    return new Promise((resolve) => {
+        const dumpBuffer = new ArrayBuffer(bytesToDownload);
+        console.log(`Dumping ${bytesToDownload} bytes...`);
+        let addrBytes = 0;
+
+        port.onReceive = (/** @type DataView */ data) => {
+            const dumpView = new Uint8Array(dumpBuffer, addrBytes, data.byteLength);
+            const packetView = new Uint8Array(data.buffer, 0, data.buffer.byteLength);
+            console.assert(ArrayBuffer.isView(dumpView), 'Expected dumpView to be a view into the shared dumpBuffer');
+            console.assert(ArrayBuffer.isView(packetView), 'Expected packetView to be a view into the shared data.buffer');
+
+            // Should this be necessary?
+            swapBytes(packetView);
+
+            dumpView.set(packetView);
+            addrBytes += packetView.byteLength;
+
+            setProgress(addrBytes / bytesToDownload);
+
+            if (addrBytes >= dumpBuffer.byteLength) {
+                console.log('Done download!');
+                port.onReceive = serialEcho;
+                setProgress(0);
+                resolve(dumpBuffer);
+            }
+        }
+
+        port.send(serialCommand);
+    });
+}
+
+function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
+    a.download = filename;
+    a.click();
+}
+
+//------------------- BUTTONS ----------------
 
 $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
@@ -247,55 +304,12 @@ $('.sram-restore').addEventListener('click', () => {
     port.send('Sw\r');
 });
 
-
-async function downloadAndParseCartHeader() {
-    return getCartDataFromHeader(await download(ADDR_HEADER_END, `D${ADDR_HEADER_END.toString(10)}\r`));
-}
-
-function download(bytesToDownload, serialCommand) {
-    return new Promise((resolve) => {
-        const dumpBuffer = new ArrayBuffer(bytesToDownload);
-        console.log(`Dumping ${bytesToDownload} bytes...`);
-        let addrBytes = 0;
-
-        port.onReceive = (/** @type DataView */ data) => {
-            const dumpView = new Uint8Array(dumpBuffer, addrBytes, data.byteLength);
-            const packetView = new Uint8Array(data.buffer, 0, data.buffer.byteLength);
-            console.assert(ArrayBuffer.isView(dumpView), 'Expected dumpView to be a view into the shared dumpBuffer');
-            console.assert(ArrayBuffer.isView(packetView), 'Expected packetView to be a view into the shared data.buffer');
-
-            // Should this be necessary?
-            swapBytes(packetView);
-
-            dumpView.set(packetView);
-            addrBytes += packetView.byteLength;
-
-            setProgress(addrBytes / bytesToDownload);
-
-            if (addrBytes >= dumpBuffer.byteLength) {
-                console.log('Done download!');
-                port.onReceive = serialEcho;
-                setProgress(0);
-                resolve(dumpBuffer);
-            }
-        }
-
-        port.send(serialCommand);
-    });
-}
-
-function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
-    a.download = filename;
-    a.innerText = 'Download dump';
-    a.click();
-}
-
 $('.flash-download').addEventListener('click', async () => {
-    const header = await downloadAndParseCartHeader();
-    console.log(header);
-    saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
+    // const header = await downloadAndParseCartHeader();
+    // console.log(header);
+    // saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
+    const bytes = 1 << 20;
+    saveBufferToFile(await download(bytes, `D${bytes.toString(10)}\r`), 'loopy-rom.bin');
 });
 
 $('.sram-download').addEventListener('click', () => {
@@ -304,18 +318,37 @@ $('.sram-download').addEventListener('click', () => {
 });
 
 $('.flash-erase').addEventListener('click', () => {
-    // if connected
+    setProgress(true);
     port.send('E\r');
 });
 $('.flash-erase-one').addEventListener('click', () => {
-    // if connected
+    setProgress(true);
     port.send('E0\r');
 });
 $('.sram-erase').addEventListener('click', () => {
-    // if connected
+    setProgress(true);
     port.send('Es\r');
 });
 
+function makeTestFile() {
+    const arrayBuffer = new ArrayBuffer(1024 * 1024 * 2);
+    const view = new DataView(arrayBuffer, 0, arrayBuffer.byteLength);
+    console.log(`making a file size=${view.byteLength}`);
+    let addr = 0;
+    for (let len = 0; ; len++) {
+        console.log(`span length ${len}`);
+        for (let byte = 0; byte <= 0xff; byte++) {
+            for (let i = 0; i < len; i++) {
+                if (addr >= view.byteLength) return arrayBuffer;
+                view.setUint8(addr++, byte);
+            }
+        }
+    }
+}
+
 $('.cls').addEventListener('click', () => {
+    console.log('done');
+    saveBufferToFile(makeTestFile(), 'test.bin');
+
     $('#receiver_lines').innerHTML = '';
 });

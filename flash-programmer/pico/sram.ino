@@ -104,6 +104,7 @@ bool sramLoadFile(const char* filename) {
   ledColor(0);
 
   file.close();
+  echo_all("!OK\r\n", 4);
   return true;
 }
 
@@ -170,6 +171,7 @@ void sramErase() {
 
   sramDeselect();
   ledColor(0);
+  echo_all("!OK\r\n", 4);
 }
 
 // Returns whether programming should continue
@@ -183,8 +185,9 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr) {
     sramDeselect();
     ledColor(0);
 
-    len = sprintf(S, "Finished! Wrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
+    len = sprintf(S, "\r\nWrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);
+    echo_all("!OK\r\n", 4);
 
     return false;
   }
