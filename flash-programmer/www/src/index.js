@@ -24,6 +24,13 @@ const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
 const $lines = $('#receiver_lines');
 const $progress = $('#progress');
+const $busyIndicator = $('#busy-indicator');
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
 
 // Pads a command to the serial buffer size (64 bytes) with extra \rs
 // Do this to send a command that expects data to follow, so the command is predictable size
@@ -105,6 +112,14 @@ function setProgress(n) {
         $progress.classList.remove('indeterminate');
         $progress.indeterminate = false;
         $progress.value = 0;
+    }
+}
+
+function setBusy(b) {
+    if (b) {
+        $busyIndicator.classList.add('busy');
+    } else {
+        $busyIndicator.classList.remove('busy');
     }
 }
 
@@ -240,26 +255,31 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
 
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
+    port.send(padCommand(`P${buffer.length}`));
 
-    port.onReceive = (data) => {
-        const str = textDecoder.decode(data);
-        appendLines(str);
+    // Is this important to break up?
+    // port.send(buffer);
+    try {
+        const blockSize = 1024;
+        for (let addr = 0; addr < buffer.byteLength;) {
+            setProgress(addr / buffer.byteLength);
+            const block = new Uint8Array(buffer.buffer, addr, Math.min(blockSize, buffer.byteLength - addr));
+            addr += block.byteLength;
 
-        const addrBytes = parseInt(str, 16);
-        if (!isNaN(addrBytes)) {
-            setProgress(addrBytes / buffer.byteLength);
+            setBusy(true); // really all this does is prove that when we block the pico really isn't responding any more - no progress while this stays on
+            const {bytesWritten, status} = await port.send(block);
+            if (status !== "ok") throw new Error(`${status}`);
+            setBusy(false);
+            // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
         }
-
-        if (addrBytes >= buffer.byteLength || str.toLowerCase().includes('finished')) {
-            console.log('Done upload!');
-            port.onReceive = serialEcho;
-            setProgress(0);
-        }
+        console.log("DONE!");
+        setProgress(0);
+    } catch (e) {
+        console.error(e);
+        setProgress(0);
+        // set error message in UI
     }
 
-
-    port.send(padCommand(`P${buffer.length}`));
-    port.send(buffer);
 });
 
 $('.sram-upload').addEventListener('change', async ({target: {files}}) => {

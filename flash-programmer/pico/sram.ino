@@ -49,7 +49,6 @@ void sramWriteByte(uint32_t addr, uint8_t byte) {
 void sramSaveFile(const char* filename) {
   File file = LittleFS.open(filename, "w");
 
-  ledColor(BLUE);
   sramSelect();
   databusReadMode();
 
@@ -63,7 +62,6 @@ void sramSaveFile(const char* filename) {
 
   databusWriteMode();
   sramDeselect();
-  ledColor(0);
 
   file.flush();
   file.close();
@@ -83,7 +81,6 @@ bool sramLoadFile(const char* filename) {
     return false;
   }
 
-  ledColor(BLUE);
   sramSelect();
   databusWriteMode();
 
@@ -101,7 +98,6 @@ bool sramLoadFile(const char* filename) {
   }
 
   sramDeselect();
-  ledColor(0);
 
   file.close();
   echo_all("!OK\r\n", 4);
@@ -132,7 +128,6 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
 }
 
 void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
-  ledColor(BLUE);
   sramSelect();
   databusReadMode();
 
@@ -147,11 +142,9 @@ void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
   sramDeselect();
   databusWriteMode();
   // echo_all("\r\n\r\n", 4);
-  ledColor(0);
 }
 
 void sramErase() {
-  ledColor(BLUE);
   echo_all("Erasing SRAM");
 
   stopwatch = millis();
@@ -170,7 +163,6 @@ void sramErase() {
   echo_all(S, len);
 
   sramDeselect();
-  ledColor(0);
   echo_all("!OK\r\n", 4);
 }
 
@@ -183,7 +175,6 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr) {
 
   if (addr >= SRAM_BYTES) {
     sramDeselect();
-    ledColor(0);
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);

@@ -124,8 +124,6 @@ bool flashStatusCheck(uint32_t addr) {
 // Major functions
 
 void flashEraseBank(int bank) {
-  ledColor(BLUE);
-
   int32_t bankAddress = bank ? (1 << 21) : 0;
   len = sprintf(S, "Erase bank address %06xh\r", bankAddress);
   echo_all(S, len);
@@ -168,7 +166,6 @@ void flashEraseBank(int bank) {
   //   echo_all("Bank Erase successful!\r");
   // }
 
-  ledColor(0);
   // clear status register
   flashCommand(0, 0x50);
   delayMicroseconds(100);
@@ -282,26 +279,33 @@ void flashDump(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
   delayMicroseconds(100);
   busRead();
 
-  ledColor(BLUE);
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     uint16_t word = flashReadWord(addr);
     usb_web.write((uint8_t *)&word, 2);
   }
   usb_web.flush();
-  ledColor(0);
   busIdle();
 }
 
 // Returns whether programming should continue
 bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expectedWords) {
+#ifdef DEBUG_LED
+  ledColor(0x400040);
+#endif
+  static int retries = 0;
+
   if ((bufLen % 2) == 1) {
     len = sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
     echo_all(S, len);
   }
 
-  // echo progress every 16kb
-  if ((addr & 8191) == 0) {
+  // echo progress at fixed intervals
+  if ((addr & 0x1fff) == 0) {
     len = sprintf(S, "%06xh ", addr);
+    if (retries > 0) {
+      len = sprintf(S, "%S%d retries ", retries);
+      retries = 0;
+    }
     echo_all(S, len);
   }
 
@@ -326,10 +330,11 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   //   flashEraseBank(1);
   // }
 
+  // Do however many multibyte writes necessary to empty the buffer
   for (int bufPtr = 0; bufPtr < bufLen;) {
     int bytesToWrite = MIN(bufLen - bufPtr, MAX_MULTIBYTE_WRITE);
+    // Don't allow multibyte writes to cross banks
     if (addr < bankBoundary && addr + bytesToWrite >= bankBoundary) {
-      // Don't allow multibyte writes to cross banks
       atBoundary = true;
       bytesToWrite = MIN(bankBoundary - addr, MAX_MULTIBYTE_WRITE);
       len = sprintf(S, "\r\nFinal write into bank 0 writing %d bytes from %x to %x\r\n", bytesToWrite, addr, addr + bytesToWrite);
@@ -337,12 +342,9 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     }
     int wordsToWrite = bytesToWrite / 2;
 
-    long retries = 0;
-    SRD = 0;
-    do {
-      ledColor(0x000020);
-      // delay(1);
 
+    // Check status until we're ready to write more
+    do {
       flashCommand(addr, 0xe8);
       flashReadStatus();
 
@@ -374,8 +376,12 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
         len = sprintf(S, "Unable to multibyte write @ %06x\r\n", addr);
         echo_all(S, len);
       }
-      delay(100);
+      delay(10);
     } while (!SR(7));
+
+#ifdef DEBUG_LED
+    ledColor(0x006000);
+#endif
 
     // XSR.7 == 1 now, ready for write
     // A word/byte count (N)-1 is written with write address.
@@ -428,7 +434,9 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     return false;
   }
 
-  ledColor(BLUE);
+#ifdef DEBUG_LED
+  ledColor(0x101010);
+#endif
 
   return true;
 #else

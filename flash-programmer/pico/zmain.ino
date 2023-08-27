@@ -4,12 +4,18 @@ void loop() {
   static bool isProgrammingSram = false;
   static uint32_t addr = 0;
   static uint32_t expectedWords;
+  static uint16_t idle = 0;
 
   if (!usb_web.available()) {
-    // ledColor(0xe20d86);
+    if (++idle == 5000) {
+      ledColor(0x303000); // yellow
+      echo_all("idle\r\n");
+    }
     delay(1);
     return;
   }
+
+  idle = 0;
 
   size_t bufLen = usb_web.read(buf, 64);
 
@@ -17,33 +23,37 @@ void loop() {
     return;
   }
 
-  ledColor(0);
-
   if (isProgrammingFlash) {
     isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, expectedWords);
-    return;
+    if (!isProgrammingFlash) ledColor(0);
   } else if (isProgrammingSram) {
     isProgrammingSram = sramWriteBuffer(buf, bufLen, addr);
-    return;
+    if (!isProgrammingSram) ledColor(0);
   }
 
   else if (buf[0] == 'E') {
     // ERASE COMMAND
+    ledColor(BLUE);
     if (buf[1] == '\r') {
       flashClearLocks();
       flashErase();
       flashCommand(0, CMD_RESET);
+      echo_all("!OK\r\n");
     } else if (buf[1] == '0' && buf[2] == '\r') {
       flashClearLocks();
       flashEraseBank(0);
       flashCommand(0, CMD_RESET);
+      echo_all("!OK\r\n");
     } else if (buf[1] == '1' && buf[2] == '\r') {
       flashClearLocks();
       flashEraseBank(1);
       flashCommand(0, CMD_RESET);
+      echo_all("!OK\r\n");
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramErase();
+      echo_all("!OK\r\n");
     }
+    ledColor(0);
   }
 
   else if (buf[0] == 'I' && buf[1] == '\r') {
@@ -82,12 +92,14 @@ void loop() {
 
   else if (buf[0] == 'D') {
     // DUMP COMMAND
+    ledColor(BLUE);
     // followed by expected # of bytes
     if (sscanf((char *)buf, "D%d\r", &expectedWords) && expectedWords > 0 && expectedWords <= 1 << ADDRBITS) {
       flashDump(0, expectedWords);
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramDump();
     }
+    ledColor(0);
   }
 
   else if (buf[0] == 'P') {
@@ -96,15 +108,14 @@ void loop() {
       // program flash followed by expected # of bytes
       len = sprintf(S, "Programming %d bytes to flash\r", expectedWords * 2);
       echo_all(S, len);
-
       isProgrammingFlash = true;
       addr = 0;
       stopwatch = millis();
       busIdle();
-
       ledColor(BLUE);
     } else if (buf[1] == 's' && buf[2] == '\r') {
       // program SRAM always uses full 8kb
+      // TODO no it doesn't
       echo_all("Programming SRAM\r");
       isProgrammingSram = true;
       addr = 0;
@@ -117,6 +128,7 @@ void loop() {
 
   else if (buf[0] == 'S') {
     // SAVE FILE MANIPULATION
+    ledColor(BLUE);
 
     // ID the header
     uint32_t cartId = flashCartHeaderId();
@@ -139,6 +151,7 @@ void loop() {
       bool success = sramLoadFile(filename);
       echo_all(success ? "Success!\r\n" : "Failure!\r\n");
     }
+    ledColor(0);
   }
 
   else {
@@ -149,6 +162,7 @@ void loop() {
 }
 
 void setup() {
+  int problems = 0;
   led.begin();
 
   // USB setup
@@ -160,18 +174,16 @@ void setup() {
 
   // TODO remove this if we're purely going through webUSB, which seems to be the case now
   // TODO don't forget to update echo_all
-  Serial.begin(115200);
+  // Serial.begin(115200);
 
   // TODO use the LittleFS constructor to set the block size, currently 16kb, ideally 8kb
   // Filesystem. Auto formats. Make sure to reserve size in Tools > Flash Size
   if (!LittleFS.begin()) {
-    flashLed(20);
-    HALT;
+    len = sprintf(S, "%s littleFS fail", S);
   }
 
   // Setup IO expanders
   SPI.begin();
-  int problems = 0;
   if (!mcpAddr0.Init()) {
     len = sprintf(S, "%s mcpAddr0 fail", S);
     problems++;
@@ -198,7 +210,6 @@ void setup() {
   }
 
   // Rated for 10MHZ
-  const int32_t SPI_SPEED = 10000000;
   mcpAddr0.setSPIClockSpeed(SPI_SPEED);
   mcpAddr1.setSPIClockSpeed(SPI_SPEED);
   mcpData.setSPIClockSpeed(SPI_SPEED);
@@ -207,7 +218,7 @@ void setup() {
   ioWriteMode(&mcpData);
   Serial.println("IO expanders initialized");
 
-  pinMode(PIN_STATUS, INPUT_PULLUP);
+  pinMode(PIN_STATUS, OUTPUT);
 
   sramDeselect();
   busIdle();

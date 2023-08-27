@@ -57,11 +57,15 @@ button#connect {
   justify-content: center;
 }
 
-#progress {
-  width: 100%;
-
+.row {
   margin-top: 20px;
   margin-bottom: 20px;
+}
+
+#progress {
+  display: inline;
+  width: 98%;
+
 
   //-webkit-appearance: none;
   //
@@ -75,6 +79,20 @@ button#connect {
   //  border-radius: 12px;
   //  height: 24px;
   //}
+}
+
+#busy-indicator {
+  float:right;
+  margin-top: 5px;
+
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.2);
+  background-color: transparent;
+  &.busy {
+    background-color: hotpink;
+  }
 }
 
 .logger-controls {

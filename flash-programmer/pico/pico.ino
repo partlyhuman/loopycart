@@ -6,6 +6,8 @@
 
 #define OPT_MULTIBYTE 1
 #define PROTOCOL_VERSION 2
+#define SPI_SPEED 10000000
+#define DEBUG_LED
 
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
 #define NOP __asm__("nop\n\t")
@@ -139,15 +141,14 @@ void echo_all(const char *buf, uint32_t count = 0) {
     usb_web.write((uint8_t *)buf, count);
     usb_web.flush();
   }
-
-  if (Serial) {
-    Serial.write(buf);
-    // for (uint32_t i = 0; i < count; i++) {
-    //   Serial.write(buf[i]);
-    //   if (buf[i] == '\r') Serial.write('\n');
-    // }
-    Serial.flush();
-  }
+  // if (Serial) {
+  //   Serial.write(buf);
+  //   // for (uint32_t i = 0; i < count; i++) {
+  //   //   Serial.write(buf[i]);
+  //   //   if (buf[i] == '\r') Serial.write('\n');
+  //   // }
+  //   Serial.flush();
+  // }
 }
 
 void line_state_callback(bool connected) {
