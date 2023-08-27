@@ -2772,10 +2772,6 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 09e0e157-3901-4698-85f2-15333ca9cbe4)
   )
-  (text "TODO double check write protect behaviour" (at 146.05 96.52 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid 0ff23317-f8bd-45a4-b0db-819b14fa7fc8)
-  )
   (text "Power the Pico when inserted in Loopy\nfor monitoring serial etc\nuse the 0R as a jumper to enable this option\nuses one of the +5V from cart edge, not connected to VCC"
     (at 339.09 29.21 0)
     (effects (font (size 1.27 1.27)) (justify right bottom))
@@ -2833,7 +2829,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid d3d69cda-fe25-4a5a-84a2-26573444ef46)
   )
-  (text "Provide 3V power to board when plugged into USB\nProtect board from being powered when plugged into console"
+  (text "Provide 3V power to board when plugged into USB\nProtect board from being powered when plugged into console\nor 5V entering 3.3V net when R13 populated"
     (at 339.09 67.31 0)
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid d5610f65-ada4-4541-802f-a6b9ff7e7f03)

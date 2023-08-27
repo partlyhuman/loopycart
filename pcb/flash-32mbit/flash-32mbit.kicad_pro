@@ -649,7 +649,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "flash-32mbit.step",
+      "step": "../../cart-shell/flash-32mbit.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
