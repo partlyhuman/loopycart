@@ -634,8 +634,8 @@
         "pattern": "/A*"
       },
       {
-        "netclass": "Default",
-        "pattern": "(VCC|GND)"
+        "netclass": "Power",
+        "pattern": "/?(VCC|GND)"
       },
       {
         "netclass": "Bus",
