@@ -15,20 +15,19 @@
 
 #define ADDRBITS 22
 #define CMD_RESET 0xff
-#define PIN_STATUS 6
+#define PIN_INSERTED 14
 
 Adafruit_USBD_WebUSB usb_web;
 #define WEBUSB_HTTP 0
 #define WEBUSB_HTTPS 1
 WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "f.loopy.land");
 
-#define SPI_CS_PIN 5
 // ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
 #define MCP_NO_RESET_PIN 100
 // SPI addresses for MCP23017 are: 0 1 0 0 A2 A1 A0
-MCP23S17 mcpData =  MCP23S17(SPI_CS_PIN, MCP_NO_RESET_PIN, 0b0100000);  //Data IO, D0-D15, Address 0x0
-MCP23S17 mcpAddr0 = MCP23S17(SPI_CS_PIN, MCP_NO_RESET_PIN, 0b0100001);  //Address IO, A0-A15, Address 0x1
-MCP23S17 mcpAddr1 = MCP23S17(SPI_CS_PIN, MCP_NO_RESET_PIN, 0b0100010);  //Address and control IO, A16-A21, OE, RAMCE, RAMWE, ROMCE, ROMWE, RESET, Address 0x2
+MCP23S17 mcpData =  MCP23S17(5, MCP_NO_RESET_PIN, 0b0100000);  //Data IO, D0-D15, Address 0x0
+MCP23S17 mcpAddr0 = MCP23S17(6, MCP_NO_RESET_PIN, 0b0100001);  //Address IO, A0-A15, Address 0x1
+MCP23S17 mcpAddr1 = MCP23S17(7, MCP_NO_RESET_PIN, 0b0100010);  //Address and control IO, A16-A21, OE, RAMCE, RAMWE, ROMCE, ROMWE, RESET, Address 0x2
 
 // sprintf buffer
 char S[128];
