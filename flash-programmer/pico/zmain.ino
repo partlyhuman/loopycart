@@ -218,7 +218,8 @@ void setup() {
   ioWriteMode(&mcpData);
   Serial.println("IO expanders initialized");
 
-  pinMode(PIN_STATUS, OUTPUT);
+  // Externally pulled up, active/inserted low
+  pinMode(PIN_INSERTED, INPUT);
 
   sramDeselect();
   busIdle();
