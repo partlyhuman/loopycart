@@ -1,9 +1,0 @@
-EESchema-DOCLIB  Version 2.0
-#
-$CMP MX29LV160DBTI-70G
-D MX29LV160DBTI-70G, Parallel Flash Memory, 1M x 16 bit, 2M x 8 bit 16Mbit, 70ns, 2.7  3.6 V, 4, 48-Pin, TSOP
-K
-F http://uk.rs-online.com/web/p/products/9142816
-$ENDCMP
-#
-#End Doc Library

@@ -10,3 +10,8 @@ To help find your way around:
 * [labels/](labels/) Printable labels you can affix to a finished Floopy Drive
 * [pcb/](pcb/) The Floopy Drive PCB and friends
 * [scans/](scans/) Scans of de-populated OEM Loopy games used as reference
+
+Related repositories:
+
+* [OSCR](https://github.com/sanni/cartreader) and [partlyhuman fork](https://github.com/partlyhuman/cartreader) A Casio Loopy dumper was contributed to the Open Source Cartridge Dumper
+* [kasami](https://github.com/kasamikona/Loopy-Tools) has a treasure trove of documentation and tooling around the Loopy
