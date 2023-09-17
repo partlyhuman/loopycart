@@ -15,3 +15,7 @@ Related repositories:
 
 * [OSCR](https://github.com/sanni/cartreader) and [partlyhuman fork](https://github.com/partlyhuman/cartreader) A Casio Loopy dumper was contributed to the Open Source Cartridge Dumper
 * [kasami](https://github.com/kasamikona/Loopy-Tools) has a treasure trove of documentation and tooling around the Loopy
+
+### Contributors! 💕
+
+None of this would be possible without the contributions of @kasamikona and @kvanderlaag, with many, many additional thanks to the members of the [Unloved Budget Computer Hole](https://discord.gg/rpCS6MEjss) Discord server.
