@@ -23,7 +23,7 @@ inline void busIdle() {
 
 // The two basic building blocks: read a word, and send a command / write a word
 
-uint16_t flashReadWord(uint32_t addr, bool swapend = false) {
+uint16_t flashReadWord(uint32_t addr) {
   busIdle();
 
   setAddress(addr);
@@ -281,7 +281,8 @@ void flashDump(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
 
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     uint16_t word = flashReadWord(addr);
-    usb_web.write((uint8_t *)&word, 2);
+    usb_web.write(word >> 8);
+    usb_web.write(word & 0xff);
   }
   usb_web.flush();
   busIdle();

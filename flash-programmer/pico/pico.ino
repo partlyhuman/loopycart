@@ -7,6 +7,7 @@
 #define OPT_MULTIBYTE 1
 #define PROTOCOL_VERSION 2
 #define SPI_SPEED 10000000
+// TODO we should be able to delete this
 #define DEBUG_LED
 
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
@@ -89,9 +90,6 @@ inline void databusWriteMode() {
 inline void setAddress(uint32_t addr) {
   // A0-A15
   mcpAddr0.setPort(addr & 0xff, (addr >> 8) & 0xff);
-  // mcpAddr0.setPort(addr & 0xff, A);
-  // mcpAddr0.setPort((addr >> 8) & 0xff, B);
-  
   // A16-A21
   mcpAddr1.setPort((addr >> 16) & 0xff, A);
 }

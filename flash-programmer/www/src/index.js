@@ -15,6 +15,7 @@ const PROTOCOL_VERSION = 2;
 const PAD = 0xffff;
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1024 * 32;
+const UPLOAD_CHUNK_SIZE = 1024;
 
 const textDecoder = new TextDecoder();
 let port = null;
@@ -207,9 +208,6 @@ function download(bytesToDownload, serialCommand) {
             console.assert(ArrayBuffer.isView(dumpView), 'Expected dumpView to be a view into the shared dumpBuffer');
             console.assert(ArrayBuffer.isView(packetView), 'Expected packetView to be a view into the shared data.buffer');
 
-            // Should this be necessary?
-            swapBytes(packetView);
-
             dumpView.set(packetView);
             addrBytes += packetView.byteLength;
 
@@ -225,6 +223,28 @@ function download(bytesToDownload, serialCommand) {
 
         port.send(serialCommand);
     });
+}
+
+async function uploadChunked(buffer) {
+    try {
+        for (let addr = 0; addr < buffer.byteLength;) {
+            setProgress(addr / buffer.byteLength);
+            const chunk = new Uint8Array(buffer.buffer, addr, Math.min(UPLOAD_CHUNK_SIZE, buffer.byteLength - addr));
+            addr += chunk.byteLength;
+
+            setBusy(true); // really all this does is prove that when we block the pico really isn't responding anymore - no progress while this stays on
+            const {bytesWritten, status} = await port.send(chunk);
+            if (status !== "ok") throw new Error(`${status}`);
+            setBusy(false);
+            // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
+        }
+        console.log("DONE!");
+        setProgress(0);
+    } catch (e) {
+        console.error(e);
+        setProgress(0);
+        // set error message in UI
+    }
 }
 
 function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
@@ -256,30 +276,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
     port.send(padCommand(`P${buffer.length}`));
-
-    // Is this important to break up?
-    // port.send(buffer);
-    try {
-        const blockSize = 1024;
-        for (let addr = 0; addr < buffer.byteLength;) {
-            setProgress(addr / buffer.byteLength);
-            const block = new Uint8Array(buffer.buffer, addr, Math.min(blockSize, buffer.byteLength - addr));
-            addr += block.byteLength;
-
-            setBusy(true); // really all this does is prove that when we block the pico really isn't responding any more - no progress while this stays on
-            const {bytesWritten, status} = await port.send(block);
-            if (status !== "ok") throw new Error(`${status}`);
-            setBusy(false);
-            // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
-        }
-        console.log("DONE!");
-        setProgress(0);
-    } catch (e) {
-        console.error(e);
-        setProgress(0);
-        // set error message in UI
-    }
-
+    await uploadChunked(buffer);
 });
 
 $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
@@ -287,6 +284,7 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
         console.log('No file selected');
         return;
     }
+
     console.log('UPLOADING!');
     let buffer = new Uint8Array(await files[0].arrayBuffer());
 
@@ -294,12 +292,9 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
         console.error(`Save expected to be ${SRAM_SIZE} bytes or less, was ${buffer.byteLength}`);
         return;
     }
-    if (buffer.byteLength % 1024 !== 0) {
-        console.warn(`Save expected to be divisible by 1kb`);
-    }
 
-    port.send(padCommand(`Ps`));
-    port.send(buffer);
+    port.send(padCommand(`Ps${buffer.byteLength / 2}`));
+    await uploadChunked(buffer);
 });
 
 
@@ -307,10 +302,10 @@ $('.flash-inspect').addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     console.log(header);
     appendLines(`Parsed header: ${JSON.stringify(header)}\r\n`);
-    const data = lookupCartDatabase(header.checksum);
-    if (data) {
-        console.log(data);
-        appendLines(`Identified in database as: ${JSON.stringify(data)}\r\n\r\n`);
+    const cart = lookupCartDatabase(header.checksum);
+    if (cart) {
+        console.log(cart);
+        appendLines(`Identified in database as: ${JSON.stringify(cart)}\r\n\r\n`);
     }
 
     port.send('I\r');
@@ -328,13 +323,25 @@ $('.flash-download').addEventListener('click', async () => {
     // const header = await downloadAndParseCartHeader();
     // console.log(header);
     // saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
-    const bytes = 1 << 20;
+    const bytes = 1 << 10;
     saveBufferToFile(await download(bytes, `D${bytes.toString(10)}\r`), 'loopy-rom.bin');
 });
 
-$('.sram-download').addEventListener('click', () => {
-    // TODO SRAM_SIZE does vary, use header (but needs to change on firmware too)
-    download(SRAM_SIZE, `Ds\r`).then(buffer => saveBufferToFile(buffer, 'loopy.sav'));
+$('.sram-download').addEventListener('click', async () => {
+    const header = await downloadAndParseCartHeader();
+    const cart = lookupCartDatabase(header.checksum);
+
+    // SRAM always downloads the whole thing, this is a good thing, we can truncate if desired
+    let buffer = await download(SRAM_SIZE, `Ds\r`);
+    if (cart) {
+        if (header.sramSize > 0 && header.sramSize < buffer.byteLength) {
+            console.log(`truncating ${buffer.byteLength / 1024}kb downloaded to declared save size of ${header.sramSize / 1024}kb`)
+            buffer = new Uint8Array(buffer, 0, header.sramSize);
+        }
+        saveBufferToFile(buffer, `${cart.name}.sav`);
+    } else {
+        saveBufferToFile(buffer, 'loopy.sav')
+    }
 });
 
 $('.flash-erase').addEventListener('click', () => {
@@ -350,25 +357,6 @@ $('.sram-erase').addEventListener('click', () => {
     port.send('Es\r');
 });
 
-function makeTestFile() {
-    const arrayBuffer = new ArrayBuffer(1024 * 1024 * 2);
-    const view = new DataView(arrayBuffer, 0, arrayBuffer.byteLength);
-    console.log(`making a file size=${view.byteLength}`);
-    let addr = 0;
-    for (let len = 0; ; len++) {
-        console.log(`span length ${len}`);
-        for (let byte = 0; byte <= 0xff; byte++) {
-            for (let i = 0; i < len; i++) {
-                if (addr >= view.byteLength) return arrayBuffer;
-                view.setUint8(addr++, byte);
-            }
-        }
-    }
-}
-
 $('.cls').addEventListener('click', () => {
-    console.log('done');
-    saveBufferToFile(makeTestFile(), 'test.bin');
-
     $('#receiver_lines').innerHTML = '';
 });

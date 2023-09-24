@@ -1,5 +1,5 @@
 #define SRAM_ADDRBITS 15
-const uint32_t SRAM_SIZE = 1 << SRAM_ADDRBITS; // minus one
+const uint32_t SRAM_SIZE = 1 << SRAM_ADDRBITS;
 
 inline void sramSelect() {
   setControl(RAMCE);
@@ -167,13 +167,12 @@ void sramErase() {
 }
 
 // Returns whether programming should continue
-bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr) {
-  const size_t SRAM_BYTES = 1 << SRAM_ADDRBITS;
-  for (int bufPtr = 0; bufPtr < bufLen && addr < SRAM_BYTES; bufPtr++, addr++) {
+bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint16_t expectedBytes) {
+  for (int bufPtr = 0; bufPtr < bufLen && addr < expectedBytes; bufPtr++, addr++) {
     sramWriteByte(addr, buf[bufPtr]);
   }
 
-  if (addr >= SRAM_BYTES) {
+  if (addr >= expectedBytes) {
     sramDeselect();
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);

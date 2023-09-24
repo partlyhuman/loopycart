@@ -1,22 +1,30 @@
+#define ABORT_AFTER_MS 1000
+
 void loop_programming() {
   static uint8_t buf[64];
   static bool isProgrammingFlash = false;
   static bool isProgrammingSram = false;
   static uint32_t addr = 0;
   static uint32_t expectedWords;
-  // static uint16_t idle = 0;
+  static uint32_t idleSince = 0;
+
 
   if (!usb_web.available()) {
     // DEBUGGING idle detect shows the pico is still looping if other things have halted due to error
-    // if (++idle == 5000) {
-    //   ledColor(0x303000); // yellow
-    //   echo_all("idle\r\n");
-    // }
-    // delay(1);
+    if (idleSince == 0) {
+      idleSince = millis();
+    }
+    else if (millis() - idleSince > ABORT_AFTER_MS) {
+      if (isProgrammingFlash || isProgrammingSram) {
+        ledColor(0x303000); // yellow
+        isProgrammingFlash = false;
+        isProgrammingSram = false;
+        echo_all("!ERROR Aborted programming after no data\r\n");
+      }
+    }
     return;
   }
-
-  // idle = 0;
+  idleSince = 0;
 
   size_t bufLen = usb_web.read(buf, 64);
 
@@ -28,7 +36,7 @@ void loop_programming() {
     isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, expectedWords);
     if (!isProgrammingFlash) ledColor(0);
   } else if (isProgrammingSram) {
-    isProgrammingSram = sramWriteBuffer(buf, bufLen, addr);
+    isProgrammingSram = sramWriteBuffer(buf, bufLen, addr, expectedWords * 2);
     if (!isProgrammingSram) ledColor(0);
   }
 
@@ -89,6 +97,8 @@ void loop_programming() {
     LittleFS.info(info);
     len = sprintf(S, "%d/%d bytes used, %0.0f%% full\r\ntotal bytes=%d, block size=%d, pageSize=%d\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes, info.blockSize, info.pageSize);
     echo_all(S, len);
+
+    busIdle();
   }
 
   else if (buf[0] == 'D') {
@@ -114,10 +124,19 @@ void loop_programming() {
       stopwatch = millis();
       busIdle();
       ledColor(BLUE);
+    } else if (sscanf((char *)buf, "Ps%d\r", &expectedWords)) {
+      // program SRAM followed by expected # of bytes
+      len = sprintf(S, "Programming %d bytes to SRAM\r", expectedWords * 2);
+      echo_all(S, len);
+      isProgrammingSram = true;
+      addr = 0;
+      stopwatch = millis();
+      sramSelect();
+      ledColor(BLUE);
     } else if (buf[1] == 's' && buf[2] == '\r') {
-      // program SRAM always uses full 8kb
-      // TODO no it doesn't
-      echo_all("Programming SRAM\r");
+      // TODO remove this case
+      echo_all("Programming SRAM unknown length, idle to finish\r");
+      expectedWords = SRAM_SIZE;
       isProgrammingSram = true;
       addr = 0;
       stopwatch = millis();
@@ -128,7 +147,7 @@ void loop_programming() {
   }
 
   else if (buf[0] == 'S') {
-    // SAVE FILE MANIPULATION
+    // SRAM BACKUP & RESTORE FROM FILESYSTEM
     ledColor(BLUE);
 
     // ID the header
@@ -164,6 +183,10 @@ void loop_programming() {
 
 void setup_programming() {
   int problems = 0;
+  
+  // Serial allows us to more easily reset/reprogram the Pico
+  // In production, consider reworking echo_all and removing this?
+  Serial.begin(115200);
 
   // USB setup
   TinyUSB_Device_Init(0);
@@ -171,10 +194,6 @@ void setup_programming() {
   usb_web.setLineStateCallback(line_state_callback);
   usb_web.setStringDescriptor("Loopycart");
   usb_web.begin();
-
-  // TODO remove this if we're purely going through webUSB, which seems to be the case now
-  // TODO don't forget to update echo_all
-  // Serial.begin(115200);
 
   // TODO use the LittleFS constructor to set the block size, currently 16kb, ideally 8kb
   // Filesystem. Auto formats. Make sure to reserve size in Tools > Flash Size
@@ -184,6 +203,10 @@ void setup_programming() {
 
   // Setup IO expanders
   SPI.begin();
+  // Rated for 10MHZ
+  mcpAddr0.setSPIClockSpeed(SPI_SPEED);
+  mcpAddr1.setSPIClockSpeed(SPI_SPEED);
+  mcpData.setSPIClockSpeed(SPI_SPEED);
   if (!mcpAddr0.Init()) {
     len = sprintf(S, "%s mcpAddr0 fail", S);
     problems++;
@@ -209,19 +232,19 @@ void setup_programming() {
     delay(500);
   }
 
-  // Rated for 10MHZ
-  mcpAddr0.setSPIClockSpeed(SPI_SPEED);
-  mcpAddr1.setSPIClockSpeed(SPI_SPEED);
-  mcpData.setSPIClockSpeed(SPI_SPEED);
-  ioWriteMode(&mcpAddr0);
-  ioWriteMode(&mcpAddr1);
   ioWriteMode(&mcpData);
-  Serial.println("IO expanders initialized");
-
-  sramDeselect();
+  ioWriteMode(&mcpAddr0);
+  
+  // CAREFUL what happens when some of these active-low control lines are set momentarily
+  busIdle();
+  ioWriteMode(&mcpAddr1);
   busIdle();
 
-  while (!TinyUSBDevice.mounted()) {
+  Serial.println("IO expanders initialized");
+
+
+  // Let either claim the USB
+  while (!TinyUSBDevice.mounted() && !Serial) {
     delay(1);
   }
 

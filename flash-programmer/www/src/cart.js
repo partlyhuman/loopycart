@@ -12,6 +12,8 @@ export const ADDR_SRAM_END = 0x000014;
 export const ADDR_HEADER_END = 0x000018;
 
 // Index by internal CRC *as a string*
+// This was made to be interoperable with the OSCR database but this is silly
+// TODO redo as json
 const cartDatabase = {};
 for (let [name, product, mbit, fullCrc, internalCrc] of LoopyCsvText.split("\n").filter(x => !x.startsWith('#') && x.trim().length > 0).map(line => line.split(',').map(s => s.trim()))) {
     cartDatabase[internalCrc.toLowerCase()] = {name, product, mbit, fullCrc, internalCrc};
@@ -36,6 +38,7 @@ export function getChecksum(buffer) {
 }
 
 
+/** @return {{name:string, product:string, mbit:string, fullCrc:string, internalCrc:string}} */
 export function lookupCartDatabase(checksum) {
     if (typeof(checksum) === 'number') {
         checksum = checksum.toString(16);
