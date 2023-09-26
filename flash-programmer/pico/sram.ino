@@ -156,7 +156,7 @@ void sramErase() {
     if (addr % 0x100 == 0) {
       echo_all(".");
     }
-    sramWriteByte(addr, 0);
+    sramWriteByte(addr, 0xff);
   }
 
   len = sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", SRAM_SIZE, (millis() - stopwatch) / 1000.0);
