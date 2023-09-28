@@ -2,7 +2,7 @@
   (version 7)
   (lib (name "LOOPY_Cart")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Cart.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_Batt")(type "KiCad")(uri "${KIPRJMOD}/Libraries/CR-2032_HF1N/CR-2032_HF1N.kicad_sym")(options "")(descr ""))
-  (lib (name "LOOPY_SRAM")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_SRAM/IS62C256AL.kicad_sym")(options "")(descr ""))
+  (lib (name "LOOPY_SRAM")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_SRAM/AS6C1008-55SIN.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_IO_SPI")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_IO_SPI/MCP23S17T-E_SO.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_Pi")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Pi/LOOPY_Pi.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_Flash")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Flash/LOOPY_Flash.kicad_sym")(options "")(descr ""))
