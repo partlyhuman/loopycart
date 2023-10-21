@@ -26,7 +26,8 @@ WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "f.loopy.land");
 // ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
 #define MCP_NO_RESET_PIN 100
 // SPI addresses for MCP23017 are: 0 1 0 0 A2 A1 A0
-MCP23S17 mcpData =  MCP23S17(5, MCP_NO_RESET_PIN, 0b0100000);  //Data IO, D0-D15, Address 0x0
+// Note we almost certainly don't need differing addresses any more since REV6 gave each a unique CE, but no harm keeping it
+MCP23S17 mcpData = MCP23S17(5, MCP_NO_RESET_PIN, 0b0100000);   //Data IO, D0-D15, Address 0x0
 MCP23S17 mcpAddr0 = MCP23S17(6, MCP_NO_RESET_PIN, 0b0100001);  //Address IO, A0-A15, Address 0x1
 MCP23S17 mcpAddr1 = MCP23S17(7, MCP_NO_RESET_PIN, 0b0100010);  //Address and control IO, A16-A21, OE, RAMCE, RAMWE, ROMCE, ROMWE, RESET, Address 0x2
 
@@ -95,18 +96,17 @@ inline void setAddress(uint32_t addr) {
 }
 
 // Control pins migrated to io expanders so build a bitmask with these. They're all active low so & these:
-#define IDLE  0b11111111
-#define OE    0b11111110
-#define RAMCE 0b11111101
-#define RAMWE 0b11111011
-#define ROMCE 0b11110111
-#define ROMWE 0b11101111
-// Alias as BE0 is used in Sharp datasheet but we call it CE
-#define ROMBE0 ROMCE
+const uint8_t IDLE  = 0xff;
+const uint8_t OE    = ~(1 << 0);
+const uint8_t RAMCE = ~(1 << 1);
+const uint8_t RAMWE = ~(1 << 2);
+const uint8_t ROMCE = ~(1 << 3);
+const uint8_t ROMWE = ~(1 << 4);
+const uint8_t RESET = ~(1 << 5);
 
-// Any bits in bitmask that are 0 will go low (active), bits are 0=OE 1=RAMCE 2=RAMWE 3=ROMCE 4=ROMWE
+// Any bits in bitmask that are 0 will go low (active), bits are 0=OE 1=RAMCE 2=RAMWE 3=ROMCE 4=ROMWE 5=RESET
 inline void setControl(uint8_t bitmask = IDLE) {
-  mcpAddr1.setPort(0xff & bitmask, B);
+  mcpAddr1.setPort(bitmask , B);
 }
 
 inline uint16_t readWord() {

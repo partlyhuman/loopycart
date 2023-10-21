@@ -1,5 +1,7 @@
 static bool PROGRAM_DEBUGGING = false;
 
+// When the cart is inserted into a Loopy, the ~INSERTED pin gets grounded
+// We then switch to a serial forwarding loop
 void onInserted() {
   bool isInserted = digitalRead(PIN_INSERTED) == LOW;
   if (PROGRAM_DEBUGGING != isInserted) {

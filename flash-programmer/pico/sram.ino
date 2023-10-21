@@ -1,4 +1,4 @@
-#define SRAM_ADDRBITS 15
+#define SRAM_ADDRBITS 17  // R7 graduated to 1MBit/128KB SRAM
 const uint32_t SRAM_SIZE = 1 << SRAM_ADDRBITS;
 
 inline void sramSelect() {
@@ -144,6 +144,7 @@ void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
   // echo_all("\r\n\r\n", 4);
 }
 
+// TODO make this take an UPTO since SRAM is bigger than needed for all games now
 void sramErase() {
   echo_all("Erasing SRAM");
 
@@ -167,10 +168,16 @@ void sramErase() {
 }
 
 // Returns whether programming should continue
-bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint16_t expectedBytes) {
+bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint32_t expectedBytes) {
   for (int bufPtr = 0; bufPtr < bufLen && addr < expectedBytes; bufPtr++, addr++) {
     sramWriteByte(addr, buf[bufPtr]);
+    // echo progress at fixed intervals
+    if ((addr & 0x1fff) == 0) {
+      len = sprintf(S, "%06xh ", addr);
+      echo_all(S, len);
+    }
   }
+
 
   if (addr >= expectedBytes) {
     sramDeselect();

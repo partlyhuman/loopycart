@@ -14,8 +14,9 @@ import {
 const PROTOCOL_VERSION = 2;
 const PAD = 0xffff;
 const SERIAL_BUFFER_SIZE = 64;
-const SRAM_SIZE = 1024 * 32;
+const SRAM_SIZE = 1 << 17;
 const UPLOAD_CHUNK_SIZE = 1024;
+const TRUNCATE_DUMPED_SRAM = false;
 
 const textDecoder = new TextDecoder();
 let port = null;
@@ -320,11 +321,11 @@ $('.sram-restore').addEventListener('click', () => {
 });
 
 $('.flash-download').addEventListener('click', async () => {
-    // const header = await downloadAndParseCartHeader();
-    // console.log(header);
-    // saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
-    const bytes = 1 << 10;
-    saveBufferToFile(await download(bytes, `D${bytes.toString(10)}\r`), 'loopy-rom.bin');
+    const header = await downloadAndParseCartHeader();
+    console.log(`downloading ${header.romSize} bytes`);
+    saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
+    // const bytes = 1 << 20;
+    // saveBufferToFile(await download(bytes, `D${bytes.toString(10)}\r`), 'loopy-rom.bin');
 });
 
 $('.sram-download').addEventListener('click', async () => {
@@ -333,7 +334,7 @@ $('.sram-download').addEventListener('click', async () => {
 
     // SRAM always downloads the whole thing, this is a good thing, we can truncate if desired
     let buffer = await download(SRAM_SIZE, `Ds\r`);
-    if (cart) {
+    if (cart && TRUNCATE_DUMPED_SRAM) {
         if (header.sramSize > 0 && header.sramSize < buffer.byteLength) {
             console.log(`truncating ${buffer.byteLength / 1024}kb downloaded to declared save size of ${header.sramSize / 1024}kb`)
             buffer = new Uint8Array(buffer, 0, header.sramSize);

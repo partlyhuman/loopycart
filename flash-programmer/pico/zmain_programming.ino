@@ -131,15 +131,6 @@ void loop_programming() {
       isProgrammingSram = true;
       addr = 0;
       stopwatch = millis();
-      sramSelect();
-      ledColor(BLUE);
-    } else if (buf[1] == 's' && buf[2] == '\r') {
-      // TODO remove this case
-      echo_all("Programming SRAM unknown length, idle to finish\r");
-      expectedWords = SRAM_SIZE;
-      isProgrammingSram = true;
-      addr = 0;
-      stopwatch = millis();
       databusWriteMode();
       sramSelect();
       ledColor(BLUE);
