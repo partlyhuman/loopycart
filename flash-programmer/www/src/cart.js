@@ -93,3 +93,17 @@ export function swapBytes(buffer) {
         view[i + 1] = a;
     }
 }
+
+export function stealthPatch(buffer, checksum = null) {
+    if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
+    checksum ??= getChecksum(buffer);
+    const view = new DataView(buffer);
+    switch (checksum) {
+        case 0x6a410bb2:
+            if (view.getUint8(0x6531) === 0x70) {
+                console.log('Stealth patching serial port out of Little Romance')
+                view.setUint8(0x6531, 0);
+            }
+            break;
+    }
+}
