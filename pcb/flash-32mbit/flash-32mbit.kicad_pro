@@ -636,7 +636,7 @@
       },
       {
         "netclass": "Power",
-        "pattern": "/?(VCC|GND|\\+BATT)"
+        "pattern": "/?(VCC|GND|\\+.+)"
       },
       {
         "netclass": "Bus",
