@@ -6,4 +6,5 @@
   (lib (name "LOOPY_IO_SPI")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_IO_SPI/MCP23S17T-E_SO.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_Pi")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Pi/LOOPY_Pi.kicad_sym")(options "")(descr ""))
   (lib (name "LOOPY_Flash")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Flash/LOOPY_Flash.kicad_sym")(options "")(descr ""))
+  (lib (name "LOOPY_Diode")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Diode/PMEG2005CT_215.kicad_sym")(options "")(descr ""))
 )
