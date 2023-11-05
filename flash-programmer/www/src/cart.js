@@ -95,6 +95,8 @@ export function swapBytes(buffer) {
 }
 
 export function stealthPatch(buffer, checksum = null) {
+    console.log("SKIPPING STEALTH PATCHING");
+    return;
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
     checksum ??= getChecksum(buffer);
     const view = new DataView(buffer);
