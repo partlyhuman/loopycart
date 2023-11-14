@@ -47,6 +47,9 @@ Once it's done running, Chrome will detect the Floopy Drive right away, no need 
 
 Chrome will remember your pairing, so in the future, all you have to do is plug in the Floopy Drive and tap the "RP2040 Zero detected" notification. That's it!
 
+## Disconnecting
+
+It should be safe to pull out the USB after finishing using the Floopy Drive. You don't have to close the browser or hit the disconnect button, but you can.
 
 
 # Using the Floopy Drive
