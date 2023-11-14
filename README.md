@@ -1,6 +1,8 @@
 # the Floopy Drive 💕
 
-This is a flashcart/devcart for the Casio Loopy. It's currently in development. This will be updated when things are closer to settling.
+This is a flashcart/devcart for the Casio Loopy. It's currently in final QA. This will be updated when it is publicized more widely.
+
+If you already have your Floopy Drive, you may want to see the [User's Guide](docs/USAGE.md).
 
 To help find your way around:
 
