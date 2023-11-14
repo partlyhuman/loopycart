@@ -39,7 +39,7 @@ Connect the Floopy Drive and run Zadig.
 
 Click "Options > List All Devices" and the device selection pulldown should have a few options. Click the "RP2040 Zero" in this list to select the Floopy Drive.
 
-By default, Zadig should show options to update the driver (most likely from "libusb0") to "WinUSB". Ensure "WinUSB" is selected, and click "Replace Driver." Be patient, installation can take a few seconds.
+By default, Zadig should show options to update the driver (most likely from "libusb0") to "WinUSB". Ensure "WinUSB" is selected on the right side, and click "Replace Driver." Be patient, installation can take a few seconds.
 
 Once it's done running, Chrome will detect the Floopy Drive right away, no need to unplug the device.
 
@@ -49,8 +49,13 @@ Chrome will remember your pairing, so in the future, all you have to do is plug 
 
 ## Disconnecting
 
-It should be safe to pull out the USB after finishing using the Floopy Drive. You don't have to close the browser or hit the disconnect button, but you can.
+It should be perfectly safe to pull out the USB after you are done using the Floopy Drive. As long as it's idle, you don't have to close the browser window or hit the disconnect button, but you certainly can.
 
+## Battery
+
+The Floopy Drive uses a CR2032 battery to keep your saves alive. If you are losing saves, please open the Floopy Drive and replace the battery.
+
+(No data are available yet regarding the lifespan of the battery.)
 
 # Using the Floopy Drive
 
