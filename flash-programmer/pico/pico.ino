@@ -5,9 +5,9 @@
 #include <LittleFS.h>
 
 #define OPT_MULTIBYTE 1
-#define PROTOCOL_VERSION 2
+#define BOARD_REVISION 8
 #define SPI_SPEED 10000000
-// TODO we should be able to delete this
+// TODO something bad is going on that flashing dies midway if this is not defined
 #define DEBUG_LED
 
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
@@ -19,9 +19,7 @@
 #define PIN_INSERTED 14
 
 Adafruit_USBD_WebUSB usb_web;
-#define WEBUSB_HTTP 0
-#define WEBUSB_HTTPS 1
-WEBUSB_URL_DEF(landingPage, WEBUSB_HTTPS, "f.loopy.land");
+WEBUSB_URL_DEF(landingPage, 1, "f.loopy.land");
 
 // ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
 #define MCP_NO_RESET_PIN 100
@@ -150,10 +148,11 @@ void echo_all(const char *buf, uint32_t count = 0) {
 
 void line_state_callback(bool connected) {
   if (connected) {
-    usb_web.print(PROTOCOL_VERSION, DEC);
+    usb_web.print(BOARD_REVISION, DEC);
     usb_web.print("\r\n");
     usb_web.write('\0');
     usb_web.print("CONNECTED\r");
+    // Dump any errors that occurred before USB connect
     if (len > 0) {
       usb_web.write((uint8_t *)S, len);
     }
