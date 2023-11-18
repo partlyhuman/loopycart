@@ -4824,7 +4824,7 @@
     (property "Reference" "R12" (at 351.79 134.62 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "2K2" (at 351.79 137.16 0)
+    (property "Value" "10K" (at 351.79 137.16 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 347.472 135.89 90)
