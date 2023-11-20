@@ -284,7 +284,8 @@ async function simpleFlash(/** @type File */ file) {
 
         // check to see if dropped is a loopy bin
         let buffer = new Uint16Array(await file.arrayBuffer());
-        const {header: newGameHeader, name: newGameName} = parseRom(buffer);
+        let {header: newGameHeader, name: newGameName} = parseRom(buffer);
+        newGameName ??= "Unrecognized ROM";
         const originalSize = buffer.byteLength;
 
         // Sanity checks
@@ -325,6 +326,8 @@ async function simpleFlash(/** @type File */ file) {
     } finally {
         $body.classList.remove('busy');
     }
+    console.log('done', new Date())
+
 }
 
 const $drop = $('.drop');
@@ -408,6 +411,10 @@ $('.sram-backup').addEventListener('click', () => {
 
 $('.sram-restore').addEventListener('click', () => {
     port.send('Sw\r');
+});
+
+$('.sram-format-fs').addEventListener('click', () => {
+    port.send('Sf\r');
 });
 
 $('.flash-download').addEventListener('click', async () => {

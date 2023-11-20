@@ -180,6 +180,7 @@ void flashErase() {
   echo_all("Erasing bank 0...\r");
   flashEraseBank(0);
 
+  echo_all("!P.5\r");
   echo_all("Erasing bank 1...\r");
   flashEraseBank(1);
 
@@ -250,6 +251,13 @@ bool flashCartHeaderCheck() {
 uint32_t flashCartHeaderId() {
   databusReadMode();
   return (flashReadWord(0x8) << 16) | flashReadWord(0xA);
+}
+
+uint32_t flashCartHeaderSramSize() {
+  databusReadMode();
+  uint32_t sramStart = (flashReadWord(0x10) << 16 | flashReadWord(0x12));
+  uint32_t sramEnd = (flashReadWord(0x14) << 16 | flashReadWord(0x16));
+  return sramEnd - sramStart + 1;
 }
 
 void flashInspect(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
@@ -428,8 +436,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     echo_all(S, len);
     
     busIdle();
-
-    echo_ok();
     return false;
   }
 
@@ -457,7 +463,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     busIdle();
 
     ledColor(0);
-    echo_ok();
     return false;
   }
 

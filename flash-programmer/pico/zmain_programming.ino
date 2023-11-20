@@ -13,10 +13,9 @@ void loop_programming() {
     // DEBUGGING idle detect shows the pico is still looping if other things have halted due to error
     if (idleSince == 0) {
       idleSince = millis();
-    }
-    else if (millis() - idleSince > ABORT_AFTER_MS) {
+    } else if (millis() - idleSince > ABORT_AFTER_MS) {
       if (isProgrammingFlash || isProgrammingSram) {
-        ledColor(0x303000); // yellow
+        ledColor(0x303000);  // yellow
         isProgrammingFlash = false;
         isProgrammingSram = false;
         echo_all("!ERROR Aborted programming after no data\r\n");
@@ -151,37 +150,38 @@ void loop_programming() {
 
     if (buf[1] == 'r' && buf[2] == '\r') {
       // backup SRAM to file
-      len = sprintf(S, "Backing up SRAM contents to %s\r\n", filename);
+      uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
+      len = sprintf(S, "Backing up first %dkb of SRAM to %s\r\n", sramSize / 1024, filename);
       echo_all(S, len);
-      sramSaveFile(filename);
+
+      sramSaveFile(filename, sramSize);
       echo_ok();
     } else if (buf[1] == 'w' && buf[2] == '\r') {
       // restore SRAM from file
       len = sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
       echo_all(S, len);
-      bool success = sramLoadFile(filename);
-      echo_all(success ? "Loaded!\r\n" : "No previous save!\r\n");
+      sramLoadFile(filename) || sramErase();
+      echo_ok();
+    } else if (buf[1] == 'f' && buf[2] == '\r') {
+      // Clear filesystem!
+      echo_all("Clearing all save states stored on Floopy Drive!!\r\n");
+      LittleFS.format();
       echo_ok();
     }
-    ledColor(0);
-  }
 
-  else if (buf[0] == 'F' && buf[1] == '\r') {
-    // FORMAT FILESYSTEM
-    LittleFS.format();
-    echo_ok();
+    ledColor(0);
   }
 
   else {
     // Received unknown command OR it's possible we returned to idle state before the sender was done sending?
     echo_all("Unrecognized command\r\n");
-    ledColor(0xce4e04); // orange
+    ledColor(0xce4e04);  // orange
   }
 }
 
 void setup_programming() {
   int problems = 0;
-  
+
   // Serial allows us to more easily reset/reprogram the Pico
   // In production, consider reworking echo_all and removing this?
   Serial.begin(115200);
@@ -232,14 +232,13 @@ void setup_programming() {
 
   ioWriteMode(&mcpData);
   ioWriteMode(&mcpAddr0);
-  
+
   // CAREFUL what happens when some of these active-low control lines are set momentarily
   busIdle();
   ioWriteMode(&mcpAddr1);
   busIdle();
 
   Serial.println("IO expanders initialized");
-
 
   // Let either claim the USB
   while (!TinyUSBDevice.mounted() && !Serial) {

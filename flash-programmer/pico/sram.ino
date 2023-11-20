@@ -46,7 +46,7 @@ void sramWriteByte(uint32_t addr, uint8_t byte) {
   setControl(RAMCE);
 }
 
-void sramSaveFile(const char* filename) {
+void sramSaveFile(const char* filename, uint32_t saveSize = SRAM_SIZE) {
   File file = LittleFS.open(filename, "w");
 
   sramSelect();
@@ -55,7 +55,7 @@ void sramSaveFile(const char* filename) {
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
   setControl(RAMCE & OE);
 
-  for (uint32_t addr = 0; addr < SRAM_SIZE; addr++) {
+  for (uint32_t addr = 0; addr < saveSize; addr++) {
     uint8_t byte = sramReadByte(addr);
     file.write(&byte, 1);
   }
@@ -100,7 +100,6 @@ bool sramLoadFile(const char* filename) {
   sramDeselect();
 
   file.close();
-  echo_ok();
   return true;
 }
 
@@ -145,7 +144,7 @@ void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
 }
 
 // TODO make this take an UPTO since SRAM is bigger than needed for all games now
-void sramErase() {
+bool sramErase() {
   echo_all("Erasing SRAM");
 
   stopwatch = millis();
@@ -164,7 +163,7 @@ void sramErase() {
   echo_all(S, len);
 
   sramDeselect();
-  echo_ok();
+  return true;
 }
 
 // Returns whether programming should continue
