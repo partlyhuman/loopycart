@@ -47,20 +47,20 @@ void loop_programming() {
       flashClearLocks();
       flashErase();
       flashCommand(0, CMD_RESET);
-      echo_all("!OK\r\n");
+      echo_ok();
     } else if (buf[1] == '0' && buf[2] == '\r') {
       flashClearLocks();
       flashEraseBank(0);
       flashCommand(0, CMD_RESET);
-      echo_all("!OK\r\n");
+      echo_ok();
     } else if (buf[1] == '1' && buf[2] == '\r') {
       flashClearLocks();
       flashEraseBank(1);
       flashCommand(0, CMD_RESET);
-      echo_all("!OK\r\n");
+      echo_ok();
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramErase();
-      echo_all("!OK\r\n");
+      echo_ok();
     }
     ledColor(0);
   }
@@ -154,15 +154,22 @@ void loop_programming() {
       len = sprintf(S, "Backing up SRAM contents to %s\r\n", filename);
       echo_all(S, len);
       sramSaveFile(filename);
-      echo_all("Done!\r\n");
+      echo_ok();
     } else if (buf[1] == 'w' && buf[2] == '\r') {
       // restore SRAM from file
       len = sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
       echo_all(S, len);
       bool success = sramLoadFile(filename);
-      echo_all(success ? "Success!\r\n" : "Failure!\r\n");
+      echo_all(success ? "Loaded!\r\n" : "No previous save!\r\n");
+      echo_ok();
     }
     ledColor(0);
+  }
+
+  else if (buf[0] == 'F' && buf[1] == '\r') {
+    // FORMAT FILESYSTEM
+    LittleFS.format();
+    echo_ok();
   }
 
   else {

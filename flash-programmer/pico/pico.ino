@@ -146,6 +146,10 @@ void echo_all(const char *buf, uint32_t count = 0) {
   // }
 }
 
+void echo_ok() {
+  echo_all("!OK\r\n", 4);
+}
+
 void line_state_callback(bool connected) {
   if (connected) {
     usb_web.print(BOARD_REVISION, DEC);

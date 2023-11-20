@@ -185,8 +185,6 @@ void flashErase() {
 
   len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
-
-  echo_all("!OK\r\n");
 }
 
 void flashClearLocks() {
@@ -431,7 +429,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     
     busIdle();
 
-    echo_all("!OK\r\n");
+    echo_ok();
     return false;
   }
 
@@ -459,7 +457,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     busIdle();
 
     ledColor(0);
-    echo_all("!OK\r\n");
+    echo_ok();
     return false;
   }
 

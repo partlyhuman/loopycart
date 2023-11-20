@@ -1,4 +1,4 @@
-import LoopyCsvText from "./data/cartDatabase";
+import LoopyCsvText from "./data/cart_database";
 import {sprintf} from "sprintf-js";
 
 export const OFFSET_ROM = 0x0E000000;
@@ -40,7 +40,7 @@ export function getChecksum(buffer) {
 
 /** @return {{name:string, product:string, mbit:string, fullCrc:string, internalCrc:string}} */
 export function lookupCartDatabase(checksum) {
-    if (typeof(checksum) === 'number') {
+    if (typeof (checksum) === 'number') {
         checksum = checksum.toString(16);
     }
     return cartDatabase[checksum];
@@ -66,6 +66,7 @@ export const HEADER_UNRECOGNIZED = 0;
 export const HEADER_OK = 1;
 export const HEADER_LITTLE_ENDIAN = 2;
 export const HEADER_BLANK = 3;
+export const UINT32_BLANK = 0xffffffff;
 
 export function getCartHeaderMagic(buffer) {
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
@@ -108,4 +109,13 @@ export function stealthPatch(buffer, checksum = null) {
             }
             break;
     }
+}
+
+export function trimEnd(buffer) {
+    // Detect padding and un-pad
+    const lastWord = buffer.findLastIndex(w => w !== 0xff);
+    if (lastWord >= 0) {
+        buffer = buffer.subarray(0, lastWord + 1);
+    }
+    return buffer;
 }

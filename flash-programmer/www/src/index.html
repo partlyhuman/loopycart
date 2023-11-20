@@ -17,12 +17,11 @@
         <img src="assets/floopydrive.svg" alt="Floopy Drive!" height="180">
         <button id="connect" class="button black">Connect</button>
         <span id="status"></span>
-        <div class="row">
-            <progress id="progress" value="0" max="1"></progress>
-            <div id="busy-indicator"></div>
-        </div>
+        <progress id="progress" value="0" max="1"></progress>
+        <div id="busy-indicator"></div>
+        <div id="progress-text" class="progress-text"></div>
     </div>
-    <div class="controls rom">
+    <div class="controls rom advanced">
         <h2>ROM</h2>
         <button class="flash-inspect button">Inspect</button>
         <button class="flash-download button">Dump</button>
@@ -30,7 +29,7 @@
         <button class="flash-erase button">Full Erase</button>
         <input class="flash-upload" type="file">
     </div>
-    <div class="controls sram">
+    <div class="controls sram advanced">
         <h2>SRAM</h2>
         <button class="sram-download button">Download</button>
         <button class="sram-erase button">Format</button>
@@ -40,14 +39,23 @@
     </div>
     <div class="dump-file-link"></div>
 
+    <div class="simple">
+        <div class="drop">
+            <h1 class="drop-text">Drop a Loopy ROM here!</h1>
+            <h3 class="drop-encourage">Yes... good... right here...</h3>
+        </div>
+    </div>
 
-    <div class="logger-controls">
+    <div class="logger-controls advanced">
         <h2>Log</h2>
         <button class="cls button">Clear</button>
     </div>
 
     <div class="logger" id="receiver_lines">
+    </div>
 
+    <div style="text-align: right">
+        <label><input id="advanced-mode" type="checkbox">Advanced mode</label>
     </div>
 </main>
 

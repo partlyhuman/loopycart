@@ -9,7 +9,7 @@ import {
     HEADER_UNRECOGNIZED,
     lookupCartDatabase,
     stealthPatch,
-    swapBytes
+    swapBytes, trimEnd, UINT32_BLANK
 } from "./cart";
 
 const PROTOCOL_VERSION = 2;
@@ -21,8 +21,10 @@ const TRUNCATE_DUMPED_SRAM = false;
 
 const textDecoder = new TextDecoder();
 let port = null;
+let currentOperationResolver;
 
 const $ = document.querySelector.bind(document);
+const $body = $('body');
 const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
 const $lines = $('#receiver_lines');
@@ -35,6 +37,10 @@ function sleep(ms) {
     });
 }
 
+function waitForStatus() {
+    return new Promise(resolve => currentOperationResolver = resolve);
+}
+
 // Pads a command to the serial buffer size (64 bytes) with extra \rs
 // Do this to send a command that expects data to follow, so the command is predictable size
 function padCommand(str) {
@@ -45,6 +51,10 @@ function serialEcho(data) {
     const text = textDecoder.decode(data);
     if (text.match(/^!OK\b/m)) {
         setProgress(false);
+        if (currentOperationResolver) {
+            currentOperationResolver();
+            currentOperationResolver = null;
+        }
     }
     appendLines(text);
 }
@@ -86,17 +96,12 @@ function addLine(text) {
 let currentReceiverLine;
 
 function appendLines(text) {
-    //TODO just innerText +=, enough of this
     const lines = text.split('\r');
     if (currentReceiverLine) {
-        currentReceiverLine.innerHTML = currentReceiverLine.innerHTML + lines[0];
-        for (let i = 1; i < lines.length; i++) {
-            currentReceiverLine = addLine(lines[i]);
-        }
-    } else {
-        for (let i = 0; i < lines.length; i++) {
-            currentReceiverLine = addLine(lines[i]);
-        }
+        currentReceiverLine.innerHTML = currentReceiverLine.innerHTML + lines.shift();
+    }
+    for (const line of lines) {
+        currentReceiverLine = addLine(line);
     }
     $lines.scrollTo(0, $lines.scrollHeight, {smooth: true});
 }
@@ -124,6 +129,18 @@ function setBusy(b) {
     } else {
         $busyIndicator.classList.remove('busy');
     }
+}
+
+function setStepInfo(str) {
+    $('.progress-text').innerText = str ?? '';
+    console.log(str);
+}
+
+async function commandWithProgress(command, stepInfo = '', indefinite = true) {
+    setProgress(indefinite || 0);
+    setStepInfo(stepInfo);
+    port.send(command);
+    await waitForStatus();
 }
 
 async function connect() {
@@ -173,24 +190,26 @@ Serial.getPorts().then(ports => {
 
 function parseRom(buffer) {
     switch (getCartHeaderMagic(buffer)) {
-        case HEADER_UNRECOGNIZED:
-        case HEADER_BLANK:
-            console.error("Does not appear to be a loopy ROM");
-            return;
+        case HEADER_OK:
+            console.log("Header ok!");
+            break;
         case HEADER_LITTLE_ENDIAN:
             console.warn("Using a little endian dump, please update your ROMs to big endian");
             swapBytes(buffer);
             console.assert(getCartHeaderMagic(buffer) === HEADER_OK, "Something went wrong with the swap");
             break;
-        case HEADER_OK:
-            console.log("Header ok!");
-            break;
+        case HEADER_UNRECOGNIZED:
+        case HEADER_BLANK:
+            throw new Error('Does not appear to be a loopy ROM');
         default:
-            console.error("Unhandled case");
-            break;
+            throw new Error("Unrecognized header");
     }
 
-    return lookupCartDatabase(getCartDataFromHeader(buffer).checksum);
+    const header = getCartDataFromHeader(buffer);
+    return {
+        ...lookupCartDatabase(header.checksum),
+        header
+    };
 }
 
 
@@ -256,7 +275,79 @@ function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
     a.click();
 }
 
-//------------------- BUTTONS ----------------
+//------------------- BASIC UI -------------------
+
+async function simpleFlash(/** @type File */ file) {
+    $body.classList.add('busy');
+    try {
+        // TODO ensure connected first
+
+        // check to see if dropped is a loopy bin
+        let buffer = new Uint16Array(await file.arrayBuffer());
+        const {header: newGameHeader, name: newGameName} = parseRom(buffer);
+        const originalSize = buffer.byteLength;
+
+        // Sanity checks
+        if (originalSize > 0x400000) {
+            throw new Error('Bigger than Floopy Drive flash!');
+        }
+        // if (newGameHeader.romSize !== originalSize) {
+        //
+        // }
+        // TODO more
+        buffer = trimEnd(buffer);
+
+        // What's on there right now?
+        const currentRomHeader = await downloadAndParseCartHeader();
+        const isDifferentGame = currentRomHeader.checksum !== newGameHeader.checksum;
+
+        // If different game, backup SRAM
+        if (isDifferentGame && currentRomHeader.checksum !== UINT32_BLANK) {
+            await commandWithProgress('Sr\r', 'Backing up current save');
+        }
+
+        // Erase either half or full
+        if (originalSize <= 0x200000) {
+            await commandWithProgress('E0\r', 'Erasing flash (half)');
+        } else {
+            await commandWithProgress('E\r', 'Erasing flash (all)');
+        }
+
+        // Flash
+        setStepInfo(`Flashing ${newGameName}`)
+        port.send(padCommand(`P${buffer.length}`));
+        await uploadChunked(buffer);
+
+        // Restore old save
+        await commandWithProgress('Sw\r', 'Restoring previous save');
+
+        setStepInfo('DONE!');
+    } finally {
+        $body.classList.remove('busy');
+    }
+}
+
+const $drop = $('.drop');
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+$drop.addEventListener('drop', event => {
+    event.preventDefault();
+    event.target.classList.remove('over');
+    simpleFlash(event.dataTransfer.files?.[0]).then();
+});
+$drop.addEventListener('dragover', (event) => event.target.classList.add('over'));
+$drop.addEventListener('dragleave', (event) => event.target.classList.remove('over'));
+$drop.addEventListener('dragend', (event) => event.target.classList.remove('over'));
+
+$('#advanced-mode').addEventListener('change', event => {
+    if (event.target.checked) {
+        $body.classList.add('advanced');
+    } else {
+        $body.classList.remove('advanced');
+    }
+});
+
+//------------------- ADVANCED UI ----------------
 
 $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
@@ -272,12 +363,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
 
     console.log('UPLOADING!');
 
-    // Detect padding and un-pad
-    const lastWord = buffer.findLastIndex(w => w !== PAD);
-    if (lastWord >= 0) {
-        buffer = buffer.subarray(0, lastWord + 1);
-    }
-
+    buffer = trimEnd(buffer);
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
     port.send(padCommand(`P${buffer.length}`));
