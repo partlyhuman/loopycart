@@ -331,6 +331,14 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
   // Do however many multibyte writes necessary to empty the buffer
   for (int bufPtr = 0; bufPtr < bufLen;) {
+
+    // Skip blocks of 0xff *between* multibyte writes only, assuming flash has been erased
+    if (bufPtr + 1 < bufLen && buf[bufPtr] == buf[bufPtr + 1] == 0xff) {
+      bufPtr += 2;
+      addr += 2;
+      continue;
+    }
+
     int bytesToWrite = MIN(bufLen - bufPtr, MAX_MULTIBYTE_WRITE);
     // Don't allow multibyte writes to cross banks
     if (addr < bankBoundary && addr + bytesToWrite >= bankBoundary) {

@@ -3,6 +3,7 @@
 #include <Adafruit_TinyUSB.h>
 #include <Adafruit_NeoPixel.h>
 #include <LittleFS.h>
+#include "generated.h"
 
 #define OPT_MULTIBYTE 1
 #define BOARD_REVISION 8
@@ -169,14 +170,16 @@ void echo_ok() {
 
 void line_state_callback(bool connected) {
   if (connected) {
-    usb_web.print(BOARD_REVISION, DEC);
+    usb_web.print("!FW ");
+    usb_web.print(GIT_COMMIT, HEX);
     usb_web.print("\r\n");
     usb_web.write('\0');
-    usb_web.print("CONNECTED\r");
+    usb_web.flush();
+
     // Dump any errors that occurred before USB connect
     if (len > 0) {
-      usb_web.write((uint8_t *)S, len);
+      echo_all("!ERR boot log errors found:\r\n");
+      echo_all(S, len);
     }
-    usb_web.flush();
   }
 }
