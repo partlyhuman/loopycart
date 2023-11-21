@@ -1,6 +1,7 @@
 // Based on https://example.tinyusb.org/webusb-serial/serial.js
 // Some modernizations by @partlyhuman
 
+const USB_VENDOR_ID = 0xcafe; // TinyUSB, or make a vanity one for Floopy perhaps
 const textEncoder = new TextEncoder();
 
 export class Serial {
@@ -10,14 +11,7 @@ export class Serial {
     }
 
     static async requestPort() {
-        const filters = [
-            {'vendorId': 0xcafe}, // TinyUSB
-            {'vendorId': 0x239a}, // Adafruit
-            {'vendorId': 0x2e8a}, // Raspberry Pi
-            {'vendorId': 0x303a}, // Espressif
-            {'vendorId': 0x2341}, // Arduino
-        ];
-        const device = await navigator.usb.requestDevice({'filters': filters});
+        const device = await navigator.usb.requestDevice({filters: [{vendorId: USB_VENDOR_ID}]});
         return new Port(device);
     }
 }
@@ -30,8 +24,14 @@ export class Port {
         this.interfaceNumber = 0;
         this.endpointIn = 0;
         this.endpointOut = 0;
-        this.onReceive = () => {};
-        this.onReceiveError = () => {};
+        this.onReceive = () => {
+        };
+        this.onReceiveError = () => {
+        };
+    }
+
+    get isOpen() {
+        return this._device.opened;
     }
 
     async connect() {

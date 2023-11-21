@@ -1,1 +1,2 @@
-#define GIT_COMMIT 0
+#define GIT_COMMIT "ddc086a"
+

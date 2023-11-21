@@ -12,16 +12,18 @@ import {
     swapBytes, trimEnd, UINT32_BLANK
 } from "./cart";
 
-const PROTOCOL_VERSION = 2;
-const PAD = 0xffff;
+// Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
+// Something better could be done with build automation that builds Arduino and web
+const FW_CURRENT = 'ddc086a';
+
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1 << 17;
 const UPLOAD_CHUNK_SIZE = 1024;
 const TRUNCATE_DUMPED_SRAM = false;
 
 const textDecoder = new TextDecoder();
-let port = null;
-let currentOperationResolver;
+/** @type Port */
+let port;
 
 const $ = document.querySelector.bind(document);
 const $body = $('body');
@@ -37,6 +39,7 @@ function sleep(ms) {
     });
 }
 
+let currentOperationResolver;
 function waitForStatus() {
     return new Promise(resolve => currentOperationResolver = resolve);
 }
@@ -57,31 +60,6 @@ function serialEcho(data) {
         }
     }
     appendLines(text);
-}
-
-let firstData;
-let versionTimeout;
-
-function versionCheck(data) {
-    clearTimeout(versionTimeout);
-    firstData += textDecoder.decode(data);
-    let end = firstData.indexOf('\0');
-    if (end >= 0) {
-        let receivedVersion = parseInt(firstData.slice(0, end));
-        if (receivedVersion === PROTOCOL_VERSION) { // Match, echo any more text
-            let moreText = firstData.slice(end + 1);
-            if (moreText) appendLines(moreText);
-            port.onReceive = serialEcho;
-        } else { // Mismatch, disconnect
-            disconnect();
-            $statusDisplay.textContent = `Protocol version mismatch! App: ${PROTOCOL_VERSION}, Device: ${receivedVersion}`;
-        }
-    } else {
-        versionTimeout = setTimeout(() => {
-            disconnect();
-            $statusDisplay.textContent = "Protocol version check timed out.";
-        }, 200);
-    }
 }
 
 function addLine(text) {
@@ -136,6 +114,13 @@ function setStepInfo(str) {
     console.log(str);
 }
 
+async function showError(str) {
+    // TODO this should display a dialog box and block until confirmed
+    console.error(str);
+    appendLines("ERROR: " + str + "\r\n");
+    await sleep(500);
+}
+
 async function commandWithProgress(command, stepInfo = '', indefinite = true) {
     setProgress(indefinite || 0);
     setStepInfo(stepInfo);
@@ -148,11 +133,22 @@ async function connect() {
         await port.connect();
         $statusDisplay.textContent = '';
         $connectButton.textContent = 'Disconnect';
-        firstData = '';
+        console.log('---connected---');
+
+        port.onReceive = (data) => {
+            const text = textDecoder.decode(data);
+            const match = text.match(/^!FW (\w+)/);
+            const fw = match?.[1];
+            if (fw !== FW_CURRENT) {
+                showError('A newer firmware for Floopy Drive is available!');
+            }
+            port.onReceive = serialEcho;
+            serialEcho(data);
+        }
         // NOTE Temporarily turned off version check because it prevents connection on reload (version only echoed when pico first connects?)
         // port.onReceive = versionCheck;
         // port.onReceiveError = error => console.error(error);
-        port.onReceive = serialEcho;
+        // port.onReceive = serialEcho;
     } catch (error) {
         $statusDisplay.textContent = error;
     }
@@ -280,7 +276,9 @@ function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
 async function simpleFlash(/** @type File */ file) {
     $body.classList.add('busy');
     try {
-        // TODO ensure connected first
+        if (!port?.isOpen) {
+            throw new Error('Not connected!');
+        }
 
         // check to see if dropped is a loopy bin
         let buffer = new Uint16Array(await file.arrayBuffer());

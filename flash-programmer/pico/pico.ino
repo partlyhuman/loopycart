@@ -170,10 +170,14 @@ void echo_ok() {
 
 void line_state_callback(bool connected) {
   if (connected) {
-    usb_web.print("!FW ");
-    usb_web.print(GIT_COMMIT, HEX);
+    // Ensure that a full 64 bytes are sent, chunk length used by client
+    const char *connectStr = "!FW ";
+    usb_web.print(connectStr);
+    usb_web.print(GIT_COMMIT);
     usb_web.print("\r\n");
-    usb_web.write('\0');
+    for (int i = 2 + strlen(connectStr) + strlen(GIT_COMMIT); i <= 64; i++) {
+      usb_web.write(' ');
+    }
     usb_web.flush();
 
     // Dump any errors that occurred before USB connect

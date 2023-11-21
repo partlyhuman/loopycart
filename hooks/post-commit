@@ -1,1 +1,1 @@
-echo "#define GIT_COMMIT 0x$(git rev-parse --short head)\n" > flash-programmer/pico/generated.h
+echo "#define GIT_COMMIT \"$(git rev-parse --short head)\"\n" > flash-programmer/pico/generated.h
