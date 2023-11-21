@@ -180,8 +180,6 @@ void loop_programming() {
 }
 
 void setup_programming() {
-  int problems = 0;
-
   // Serial allows us to more easily reset/reprogram the Pico
   // In production, consider reworking echo_all and removing this?
   Serial.begin(115200);
@@ -190,7 +188,7 @@ void setup_programming() {
   TinyUSB_Device_Init(0);
   usb_web.setLandingPage(&landingPage);
   usb_web.setLineStateCallback(line_state_callback);
-  usb_web.setStringDescriptor("Loopycart");
+  usb_web.setStringDescriptor("Floopy Drive");
   usb_web.begin();
 
   // TODO use the LittleFS constructor to set the block size, currently 16kb, ideally 8kb
@@ -207,7 +205,6 @@ void setup_programming() {
   mcpData.setSPIClockSpeed(SPI_SPEED);
   if (!mcpAddr0.Init()) {
     len = sprintf(S, "%s mcpAddr0 fail", S);
-    problems++;
     ledColor(0x800000);
     delay(2000);
     ledColor(0);
@@ -215,7 +212,6 @@ void setup_programming() {
   }
   if (!mcpAddr1.Init()) {
     len = sprintf(S, "%s mcpAddr1 fail", S);
-    problems++;
     ledColor(0x804000);
     delay(2000);
     ledColor(0);
@@ -223,7 +219,6 @@ void setup_programming() {
   }
   if (!mcpData.Init()) {
     len = sprintf(S, "%s mcpData fail", S);
-    problems++;
     ledColor(0x800040);
     delay(2000);
     ledColor(0);
@@ -238,7 +233,17 @@ void setup_programming() {
   ioWriteMode(&mcpAddr1);
   busIdle();
 
-  Serial.println("IO expanders initialized");
+  // Backup SRAM anytime plugging in, woohoo
+  uint32_t cartId = flashCartHeaderId();
+  if (cartId != 0xffffffff) {
+    ledColor(BLUE);
+    const char SAVE_FILENAME_LEN = 13;
+    char filename[SAVE_FILENAME_LEN];
+    sprintf(filename, "%08x.sav", cartId);
+    uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
+    sramSaveFile(filename, sramSize);
+    ledColor(0);
+  }
 
   // Let either claim the USB
   while (!TinyUSBDevice.mounted() && !Serial) {

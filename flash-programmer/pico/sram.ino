@@ -74,11 +74,16 @@ bool sramLoadFile(const char* filename) {
     return false;
   }
   File file = LittleFS.open(filename, "r");
-  if (file.size() != SRAM_SIZE) {
-    len = sprintf(S, "file %s is wrong size, expected %d, actual %d\r\n", filename, SRAM_SIZE, file.size());
-    echo_all(S, len);
-    // TODO delete?
+  auto fileSize = file.size();
+  auto expectedFileSize = flashCartHeaderSramSize();
+  if (fileSize > SRAM_SIZE) {
+    len = sprintf(S, "Backed up file is bigger than SRAM size, aborting");
+    LittleFS.remove(filename);
     return false;
+  }
+  if (fileSize != expectedFileSize) {
+    len = sprintf(S, "Backup size %s is wrong size, expected %d, actual %d, continuing anyway...\r\n", filename, expectedFileSize, fileSize);
+    echo_all(S, len);
   }
 
   sramSelect();
@@ -87,11 +92,11 @@ bool sramLoadFile(const char* filename) {
   // read 1kb at a time?
   const size_t CHUNK_SIZE = 1 << 10;
   uint8_t buf[CHUNK_SIZE];
-  for (uint32_t addr = 0; addr < SRAM_SIZE;) {
+  for (uint32_t addr = 0; addr < fileSize;) {
     // file.read() will do this for you if not enough available i guess
     // size_t bufSize = MIN(CHUNK_SIZE, SRAM_SIZE - addr);
-    // if (bufSize <= 0) break;
     size_t bufSize = file.read(buf, CHUNK_SIZE);
+    if (bufSize <= 0) break;
     for (size_t bufPtr = 0; bufPtr < bufSize; bufPtr++, addr++) {
       sramWriteByte(addr, buf[bufPtr]);
     }
