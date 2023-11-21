@@ -9,7 +9,9 @@ import {
     HEADER_UNRECOGNIZED,
     lookupCartDatabase,
     stealthPatch,
-    swapBytes, trimEnd, UINT32_BLANK
+    swapBytes,
+    trimEnd,
+    UINT32_BLANK
 } from "./cart";
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
@@ -124,7 +126,7 @@ async function showError(str) {
 async function commandWithProgress(command, stepInfo = '', indefinite = true) {
     setProgress(indefinite || 0);
     setStepInfo(stepInfo);
-    port.send(command);
+    await port.send(command);
     await waitForStatus();
 }
 
@@ -145,17 +147,13 @@ async function connect() {
             port.onReceive = serialEcho;
             serialEcho(data);
         }
-        // NOTE Temporarily turned off version check because it prevents connection on reload (version only echoed when pico first connects?)
-        // port.onReceive = versionCheck;
-        // port.onReceiveError = error => console.error(error);
-        // port.onReceive = serialEcho;
     } catch (error) {
         $statusDisplay.textContent = error;
     }
 }
 
 async function disconnect() {
-    port.disconnect();
+    await port.disconnect();
     $connectButton.textContent = 'Connect';
     $statusDisplay.textContent = '';
     port = null;
@@ -180,7 +178,7 @@ Serial.getPorts().then(ports => {
     } else {
         $statusDisplay.textContent = 'Connecting...';
         port = ports[0];
-        connect();
+        connect().then();
     }
 });
 
@@ -314,13 +312,15 @@ async function simpleFlash(/** @type File */ file) {
 
         // Flash
         setStepInfo(`Flashing ${newGameName}`)
-        port.send(padCommand(`P${buffer.length}`));
+        await port.send(padCommand(`P${buffer.length}`));
         await uploadChunked(buffer);
 
-        // Restore old save
+        // Restore old save or format SRAM if no existing backup
         await commandWithProgress('Sw\r', 'Restoring previous save');
 
         setStepInfo('DONE!');
+    } catch (err) {
+        await showError(err.message);
     } finally {
         $body.classList.remove('busy');
     }
@@ -367,7 +367,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     buffer = trimEnd(buffer);
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
-    port.send(padCommand(`P${buffer.length}`));
+    await port.send(padCommand(`P${buffer.length}`));
     await uploadChunked(buffer);
 });
 
@@ -385,7 +385,7 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
         return;
     }
 
-    port.send(padCommand(`Ps${buffer.byteLength / 2}`));
+    await port.send(padCommand(`Ps${buffer.byteLength / 2}`));
     await uploadChunked(buffer);
 });
 
@@ -400,19 +400,19 @@ $('.flash-inspect').addEventListener('click', async () => {
         appendLines(`Identified in database as: ${JSON.stringify(cart)}\r\n\r\n`);
     }
 
-    port.send('I\r');
+    await port.send('I\r');
 });
 
-$('.sram-backup').addEventListener('click', () => {
-    port.send('Sr\r');
+$('.sram-backup').addEventListener('click', async () => {
+    await port.send('Sr\r');
 });
 
-$('.sram-restore').addEventListener('click', () => {
-    port.send('Sw\r');
+$('.sram-restore').addEventListener('click', async () => {
+    await port.send('Sw\r');
 });
 
-$('.sram-format-fs').addEventListener('click', () => {
-    port.send('Sf\r');
+$('.sram-format-fs').addEventListener('click', async () => {
+    await port.send('Sf\r');
 });
 
 $('.flash-download').addEventListener('click', async () => {
@@ -440,17 +440,17 @@ $('.sram-download').addEventListener('click', async () => {
     }
 });
 
-$('.flash-erase').addEventListener('click', () => {
+$('.flash-erase').addEventListener('click', async () => {
     setProgress(true);
-    port.send('E\r');
+    await port.send('E\r');
 });
-$('.flash-erase-one').addEventListener('click', () => {
+$('.flash-erase-one').addEventListener('click', async () => {
     setProgress(true);
-    port.send('E0\r');
+    await port.send('E0\r');
 });
-$('.sram-erase').addEventListener('click', () => {
+$('.sram-erase').addEventListener('click', async () => {
     setProgress(true);
-    port.send('Es\r');
+    await port.send('Es\r');
 });
 
 $('.cls').addEventListener('click', () => {

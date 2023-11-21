@@ -112,8 +112,7 @@ export function stealthPatch(buffer, checksum = null) {
 }
 
 export function trimEnd(buffer) {
-    // Detect padding and un-pad
-    const lastWord = buffer.findLastIndex(w => w !== 0xff);
+    const lastWord = buffer.findLastIndex(w => w !== 0xffff);
     if (lastWord >= 0) {
         buffer = buffer.subarray(0, lastWord + 1);
     }
