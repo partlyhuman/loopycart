@@ -87,10 +87,24 @@ inline void databusWriteMode() {
 
 // NOTE address is in bytes, though we write words
 inline void setAddress(uint32_t addr) {
-  // A0-A15
-  mcpAddr0.setPort(addr & 0xff, (addr >> 8) & 0xff);
+  // cache address and only set bits that changed
+  static uint32_t lastAddr = 0;
+  uint32_t diff = addr ^ lastAddr;
+
+  // A0-A7
+  if ((diff & 0x000000ff) != 0) {
+    mcpAddr0.setPort(addr & 0xff, A);
+  }
+  // A8-A15
+  if ((diff & 0x0000ff00) != 0) {
+    mcpAddr0.setPort((addr >> 8) & 0xff, B);
+  }
   // A16-A21
-  mcpAddr1.setPort((addr >> 16) & 0xff, A);
+  if ((diff & 0x00ff0000) != 0) {
+    mcpAddr1.setPort((addr >> 16) & 0xff, A);
+  }
+
+  lastAddr = addr;
 }
 
 // Control pins migrated to io expanders so build a bitmask with these. They're all active low so & these:
@@ -104,7 +118,11 @@ const uint8_t RESET = ~(1 << 5);
 
 // Any bits in bitmask that are 0 will go low (active), bits are 0=OE 1=RAMCE 2=RAMWE 3=ROMCE 4=ROMWE 5=RESET
 inline void setControl(uint8_t bitmask = IDLE) {
-  mcpAddr1.setPort(bitmask , B);
+  static uint8_t lastControl = 0;
+  if (bitmask != lastControl) {
+    mcpAddr1.setPort(bitmask, B);
+  }
+  lastControl = bitmask;
 }
 
 inline uint16_t readWord() {
@@ -117,9 +135,8 @@ inline uint8_t readByte() {
 
 inline void writeWord(uint32_t addr, uint16_t word) {
   setAddress(addr);
+  // In testing, caching last write is slower
   mcpData.setPort(word & 0xff, (word >> 8) & 0xff);
-  // mcpData.setPort(word & 0xff, A);
-  // mcpData.setPort((word >> 8) & 0xff, B);
 }
 
 inline void writeByte(uint32_t addr, uint8_t byte) {

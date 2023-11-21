@@ -329,14 +329,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   bool atBoundary = false;
   uint32_t currentBank = zeroWithBank(addr);
 
-  // Erase as you go:
-  // if (addr == 0) {
-  //   flashEraseBank(0);
-  // }
-  // if (addr == bankBoundary) {
-  //   flashEraseBank(1);
-  // }
-
   // Do however many multibyte writes necessary to empty the buffer
   for (int bufPtr = 0; bufPtr < bufLen;) {
     int bytesToWrite = MIN(bufLen - bufPtr, MAX_MULTIBYTE_WRITE);
@@ -348,7 +340,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
       echo_all(S, len);
     }
     int wordsToWrite = bytesToWrite / 2;
-
 
     // Check status until we're ready to write more
     do {
@@ -365,7 +356,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
           ledColor(0xFF0000);
           HALT;
         }
-        delayMicroseconds(10);
+        // delayMicroseconds(10);
         continue;
       }
 
