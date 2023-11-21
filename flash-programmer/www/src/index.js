@@ -16,7 +16,7 @@ import {
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = 'ddc086a';
+const FW_CURRENT = '7f0b372';
 
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1 << 17;
@@ -298,10 +298,10 @@ async function simpleFlash(/** @type File */ file) {
         const currentRomHeader = await downloadAndParseCartHeader();
         const isDifferentGame = currentRomHeader.checksum !== newGameHeader.checksum;
 
-        // If different game, backup SRAM
-        if (isDifferentGame && currentRomHeader.checksum !== UINT32_BLANK) {
-            await commandWithProgress('Sr\r', 'Backing up current save');
-        }
+        // If different game, backup SRAM -- no longer needed, now we backup SRAM when plugged in
+        // if (isDifferentGame && currentRomHeader.checksum !== UINT32_BLANK) {
+        //     await commandWithProgress('Sr\r', 'Backing up current save');
+        // }
 
         // Erase either half or full
         if (originalSize <= 0x200000) {
@@ -316,7 +316,9 @@ async function simpleFlash(/** @type File */ file) {
         await uploadChunked(buffer);
 
         // Restore old save or format SRAM if no existing backup
-        await commandWithProgress('Sw\r', 'Restoring previous save');
+        if (isDifferentGame) {
+            await commandWithProgress('Sw\r', 'Restoring previous save');
+        }
 
         setStepInfo('DONE!');
     } catch (err) {
