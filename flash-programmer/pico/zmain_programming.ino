@@ -144,7 +144,7 @@ void loop_programming() {
     uint32_t cartId = flashCartHeaderId();
 
     // we always use <crc32>.sav which is 8 1 3 = 12 chars plus string terminator = 13 bytes
-    const char SAVE_FILENAME_LEN = 13;
+    const size_t SAVE_FILENAME_LEN = 13;
     char filename[SAVE_FILENAME_LEN];
     sprintf(filename, "%08x.sav", cartId);
 
@@ -237,7 +237,7 @@ void setup_programming() {
   uint32_t cartId = flashCartHeaderId();
   if (cartId != 0xffffffff) {
     ledColor(BLUE);
-    const char SAVE_FILENAME_LEN = 13;
+    const size_t SAVE_FILENAME_LEN = 13;
     char filename[SAVE_FILENAME_LEN];
     sprintf(filename, "%08x.sav", cartId);
     uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);

@@ -1,7 +1,7 @@
 // Based on https://example.tinyusb.org/webusb-serial/serial.js
 // Some modernizations by @partlyhuman
 
-const USB_VENDOR_ID = 0xcafe; // TinyUSB, or make a vanity one for Floopy perhaps
+const USB_VENDOR_ID = 0x239a; // Adafruit USB library, or make a vanity one for Floopy perhaps
 const textEncoder = new TextEncoder();
 
 export class Serial {
@@ -11,7 +11,11 @@ export class Serial {
     }
 
     static async requestPort() {
-        const device = await navigator.usb.requestDevice({filters: [{vendorId: USB_VENDOR_ID}]});
+        const device = await navigator.usb.requestDevice({
+            'filters': [
+                {vendorId: USB_VENDOR_ID},
+            ]
+        });
         return new Port(device);
     }
 }

@@ -10,8 +10,7 @@ import {
     lookupCartDatabase,
     stealthPatch,
     swapBytes,
-    trimEnd,
-    UINT32_BLANK
+    trimEnd
 } from "./cart";
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
@@ -42,6 +41,7 @@ function sleep(ms) {
 }
 
 let currentOperationResolver;
+
 function waitForStatus() {
     return new Promise(resolve => currentOperationResolver = resolve);
 }

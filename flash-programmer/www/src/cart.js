@@ -86,12 +86,9 @@ export function getCartHeaderMagic(buffer) {
 
 export function swapBytes(buffer) {
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
-    const view = new Uint8Array(buffer)
+    const view = new Uint8Array(buffer);
     for (let i = 0; i < view.byteLength; i += 2) {
-        const a = view[i];
-        const b = view[i + 1];
-        view[i] = b;
-        view[i + 1] = a;
+        [view[i + 1], view[i]] = [view[i], view[i + 1]];
     }
 }
 
