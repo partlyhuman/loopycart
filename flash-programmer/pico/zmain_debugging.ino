@@ -1,3 +1,7 @@
+// Keep Adafruit VID, custom PID for debugging (different from programming)
+#define PID_DEBUG 0x239A
+#define VID_DEBUG 0xF10D
+
 void loop_debugging() {
   // USB -> Loopy
   if (Serial.available()) {
@@ -16,6 +20,8 @@ void setup_debugging() {
   ledColor(0x001000);
 
   // Serial; // USB serial
+  TinyUSBDevice.setID(VID_DEBUG, PID_DEBUG);
+  //TinyUSBDevice.setProductDescriptor("Floopy Drive (Debug)"); // Adafruit_USBD_CDC annoyingly overrides this, fix with custom class?
   Serial.begin(38400);
 
   // Serial1; // UART0 on alternative pins

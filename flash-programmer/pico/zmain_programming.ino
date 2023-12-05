@@ -1,5 +1,9 @@
 #define ABORT_AFTER_MS 1000
 
+// Keep Adafruit VID, custom PID for programming
+#define VID_PROG 0x239A
+#define PID_PROG 0xF100
+
 void loop_programming() {
   static uint8_t buf[64];
   static bool isProgrammingFlash = false;
@@ -185,7 +189,9 @@ void setup_programming() {
   Serial.begin(115200);
 
   // USB setup
-  TinyUSB_Device_Init(0);
+  //TinyUSB_Device_Init(0);
+  TinyUSBDevice.setID(VID_PROG, PID_PROG);
+  TinyUSBDevice.setProductDescriptor("Floopy Drive");
   usb_web.setLandingPage(&landingPage);
   usb_web.setLineStateCallback(line_state_callback);
   usb_web.setStringDescriptor("Floopy Drive");
