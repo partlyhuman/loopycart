@@ -5,11 +5,12 @@
 #include <LittleFS.h>
 #include "generated.h"
 
-#define OPT_MULTIBYTE 1
-#define BOARD_REVISION 8
+#define HW_REVISION 8
+// The MCP23S17 is rated for 10MHz
 #define SPI_SPEED 10000000
 // TODO something bad is going on that flashing dies midway if this is not defined
 #define DEBUG_LED
+#define OPT_MULTIBYTE 1
 
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
 #define NOP __asm__("nop\n\t")
@@ -18,9 +19,10 @@
 #define ADDRBITS 22
 #define CMD_RESET 0xff
 #define PIN_INSERTED 14
+#define USB_BUFSIZE 64
 
-Adafruit_USBD_WebUSB usb_web;
 WEBUSB_URL_DEF(landingPage, 1, "f.loopy.land");
+Adafruit_USBD_WebUSB usb_web;
 
 // ~RESET is pulled high when pico is powered up, >=99 means dummy reset pin
 #define MCP_NO_RESET_PIN 100
@@ -151,7 +153,6 @@ inline void writeByte(uint32_t addr, uint8_t byte) {
   mcpData.setPort(byte, A);
 }
 
-// function to echo to both Serial and WebUSB
 void echo_all(const char *buf, uint32_t count = 0) {
   if (count == 0) {
     count = strlen(buf);
@@ -172,24 +173,4 @@ void echo_all(const char *buf, uint32_t count = 0) {
 
 void echo_ok() {
   echo_all("!OK\r\n", 4);
-}
-
-void line_state_callback(bool connected) {
-  if (connected) {
-    // Ensure that a full 64 bytes are sent, chunk length used by client
-    const char *connectStr = "!FW ";
-    usb_web.print(connectStr);
-    usb_web.print(GIT_COMMIT);
-    usb_web.print("\r\n");
-    for (int i = 2 + strlen(connectStr) + strlen(GIT_COMMIT); i <= 64; i++) {
-      usb_web.write(' ');
-    }
-    usb_web.flush();
-
-    // Dump any errors that occurred before USB connect
-    if (len > 0) {
-      echo_all("!ERR boot log errors found:\r\n");
-      echo_all(S, len);
-    }
-  }
 }

@@ -140,6 +140,7 @@ async function connect() {
 
         port.onReceive = (data) => {
             const text = textDecoder.decode(data);
+            console.log('connect string: ', text);
             const match = text.match(/^!FW (\w+)/);
             const fw = match?.[1];
             if (fw !== FW_CURRENT) {
@@ -454,6 +455,11 @@ $('.flash-erase-one').addEventListener('click', async () => {
 $('.sram-erase').addEventListener('click', async () => {
     setProgress(true);
     await port.send('Es\r');
+});
+
+$('.device-nickname button').addEventListener('click', async () => {
+    const nick = $('.device-nickname input').value;
+    await port.send(`N${nick}\r`);
 });
 
 $('.cls').addEventListener('click', () => {

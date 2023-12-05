@@ -4,6 +4,8 @@
 #define VID_PROG 0x239A
 #define PID_PROG 0xF100
 
+static int bootErrors = 0;
+
 void loop_programming() {
   static uint8_t buf[64];
   static bool isProgrammingFlash = false;
@@ -176,6 +178,16 @@ void loop_programming() {
     ledColor(0);
   }
 
+  else if (buf[0] == 'N') {
+    if (sscanf((char *)buf, "N%[^\r]\r", S) && strlen(S) > 0) {
+      echo_all("Setting nickname...");
+      setNickname(S);
+    } else {
+      echo_all("Deleting nickname...");
+      setNickname(NULL);
+    }
+  }
+
   else {
     // Received unknown command OR it's possible we returned to idle state before the sender was done sending?
     echo_all("Unrecognized command\r\n");
@@ -183,53 +195,59 @@ void loop_programming() {
   }
 }
 
+void onUsbConnect(bool connected) {
+  if (connected) {
+    char connectStr[USB_BUFSIZE];
+    for (int i = 0; i < USB_BUFSIZE; i++) {
+      connectStr[i] = '\r';  // make printable
+    }
+    // Spit out firmware and hardware revisions first thing on connect
+    // Ensure we append existing string buffer S which contains any preexisting boot logging
+    sprintf(connectStr, "!FW %s\r\n!HW %d\r\n", GIT_COMMIT, HW_REVISION);
+    usb_web.write((uint8_t *)connectStr, USB_BUFSIZE);
+    usb_web.flush();
+
+    if (len > 0) {
+      echo_all("!ERR boot log errors found:\r\n");
+      echo_all(S, len);
+    }
+  }
+}
+
+inline void bootError(const char *str, uint32_t ledErrorColor = 0x800000) {
+  bootErrors++;
+  len = sprintf(S, "%s %s", S, str);
+  ledColor(ledErrorColor);
+}
+
 void setup_programming() {
   // Serial allows us to more easily reset/reprogram the Pico
   // In production, consider reworking echo_all and removing this?
   Serial.begin(115200);
 
-  // USB setup
-  //TinyUSB_Device_Init(0);
-  TinyUSBDevice.setID(VID_PROG, PID_PROG);
-  TinyUSBDevice.setProductDescriptor("Floopy Drive");
-  usb_web.setLandingPage(&landingPage);
-  usb_web.setLineStateCallback(line_state_callback);
-  usb_web.setStringDescriptor("Floopy Drive");
-  usb_web.begin();
-
-  // TODO use the LittleFS constructor to set the block size, currently 16kb, ideally 8kb
   // Filesystem. Auto formats. Make sure to reserve size in Tools > Flash Size
-  if (!LittleFS.begin()) {
-    len = sprintf(S, "%s littleFS fail", S);
-  }
+  // If we wanted to customize the block size could use something like this modifying 4096, perhaps down to 1024
+  // FS LittleFS = FS(FSImplPtr(new littlefs_impl::LittleFSImpl(&_FS_start, &_FS_end - &_FS_start, 256, 4096, 16)));
+  if (!LittleFS.begin()) bootError("littleFS fail");
+
+  // USB setup
+  TinyUSBDevice.setID(VID_PROG, PID_PROG);
+  // Reads nickname from FS, must place after LittleFS.begin
+  const char *deviceName = makeNicknamedDeviceName();
+  TinyUSBDevice.setProductDescriptor(deviceName);
+  usb_web.setLandingPage(&landingPage);
+  usb_web.setLineStateCallback(onUsbConnect);
+  usb_web.setStringDescriptor(deviceName);
+  usb_web.begin();
 
   // Setup IO expanders
   SPI.begin();
-  // Rated for 10MHZ
   mcpAddr0.setSPIClockSpeed(SPI_SPEED);
   mcpAddr1.setSPIClockSpeed(SPI_SPEED);
   mcpData.setSPIClockSpeed(SPI_SPEED);
-  if (!mcpAddr0.Init()) {
-    len = sprintf(S, "%s mcpAddr0 fail", S);
-    ledColor(0x800000);
-    delay(2000);
-    ledColor(0);
-    delay(500);
-  }
-  if (!mcpAddr1.Init()) {
-    len = sprintf(S, "%s mcpAddr1 fail", S);
-    ledColor(0x804000);
-    delay(2000);
-    ledColor(0);
-    delay(500);
-  }
-  if (!mcpData.Init()) {
-    len = sprintf(S, "%s mcpData fail", S);
-    ledColor(0x800040);
-    delay(2000);
-    ledColor(0);
-    delay(500);
-  }
+  if (!mcpAddr0.Init()) bootError("mcpAddr0 fail");
+  if (!mcpAddr1.Init()) bootError("mcpAddr1 fail");
+  if (!mcpData.Init()) bootError("mcpData fail");
 
   ioWriteMode(&mcpData);
   ioWriteMode(&mcpAddr0);
@@ -239,16 +257,17 @@ void setup_programming() {
   ioWriteMode(&mcpAddr1);
   busIdle();
 
-  // Backup SRAM anytime plugging in, woohoo
-  uint32_t cartId = flashCartHeaderId();
-  if (cartId != 0xffffffff) {
-    ledColor(BLUE);
-    const size_t SAVE_FILENAME_LEN = 13;
-    char filename[SAVE_FILENAME_LEN];
-    sprintf(filename, "%08x.sav", cartId);
-    uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
-    sramSaveFile(filename, sramSize);
-    ledColor(0);
+  // Backup SRAM contents whenever Pico is booted up
+  if (!bootErrors && flashCartHeaderCheck()) {
+    uint32_t cartId = flashCartHeaderId();
+    if (cartId != 0 && cartId != 0xffffffff) {
+      ledColor(BLUE);
+      const size_t SAVE_FILENAME_LEN = 13;
+      char filename[SAVE_FILENAME_LEN];
+      sprintf(filename, "%08x.sav", cartId);
+      sramSaveFile(filename, min(flashCartHeaderSramSize(), SRAM_SIZE));
+      ledColor(0);
+    }
   }
 
   // Let either claim the USB
@@ -256,7 +275,10 @@ void setup_programming() {
     delay(1);
   }
 
-  ledColor(0xffffff);
-  delay(100);
-  ledColor(0);
+  if (!bootErrors) {
+    // Give a little flash to indicate boot and connection ok, otherwise leave error status LED unchanged
+    ledColor(0xffffff);
+    delay(100);
+    ledColor(0);
+  }
 }

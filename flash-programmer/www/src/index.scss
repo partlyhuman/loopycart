@@ -48,7 +48,13 @@ button#connect {
 .controls {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  justify-content: start;
   gap: 1rem;
+}
+
+.controls input, .controls button {
+  height: 100%;
 }
 
 .connect-container {
