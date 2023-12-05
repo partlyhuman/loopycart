@@ -92,14 +92,20 @@ inline void setAddress(uint32_t addr) {
   static uint32_t lastAddr = 0;
   uint32_t diff = addr ^ lastAddr;
 
-  // A0-A7
-  if ((diff & 0x000000ff) != 0) {
-    mcpAddr0.setPort(addr & 0xff, A);
+  // // A0-A7
+  // if ((diff & 0x000000ff) != 0) {
+  //   mcpAddr0.setPort(addr & 0xff, A);
+  // }
+  // // A8-A15
+  // if ((diff & 0x0000ff00) != 0) {
+  //   mcpAddr0.setPort((addr >> 8) & 0xff, B);
+  // }
+ 
+  // A0-A15
+  if ((diff & 0x0000ffff) != 0) {
+    mcpAddr0.setPort(addr & 0xff, (addr >> 8) & 0xff);
   }
-  // A8-A15
-  if ((diff & 0x0000ff00) != 0) {
-    mcpAddr0.setPort((addr >> 8) & 0xff, B);
-  }
+
   // A16-A21
   if ((diff & 0x00ff0000) != 0) {
     mcpAddr1.setPort((addr >> 16) & 0xff, A);
