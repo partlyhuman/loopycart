@@ -15,7 +15,7 @@ import {
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = '7f0b372';
+const FW_CURRENT = 'db0994a';
 
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1 << 17;
@@ -103,6 +103,7 @@ function setProgress(n) {
     }
 }
 
+// TODO change this to refer to the overall page state (add classes to <body>)
 function setBusy(b) {
     if (b) {
         $busyIndicator.classList.add('busy');
