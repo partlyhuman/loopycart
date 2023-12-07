@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "LOOPY_RGB")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_RGB.kicad_sym")(options "")(descr ""))
+)
