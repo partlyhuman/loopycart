@@ -14,6 +14,10 @@ html, body {
   overscroll-behavior: none;
 }
 
+.hidden {
+  display: none !important;
+}
+
 h1, h2, h3, h4, h5, .loopyfont {
   font-family: 'Loopy', serif;
   text-transform: uppercase;
@@ -185,4 +189,12 @@ body.busy {
   &.over .drop-encourage {
     visibility: visible;
   }
+}
+
+.row.flex {
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }

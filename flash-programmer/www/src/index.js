@@ -144,7 +144,7 @@ async function connect() {
             const match = text.match(/^!FW (\w+)/);
             const fw = match?.[1];
             if (fw !== FW_CURRENT) {
-                showError('A newer firmware for Floopy Drive is available!');
+                $('.download-firmware').classList.remove('hidden');
             }
             port.onReceive = serialEcho;
             serialEcho(data);
