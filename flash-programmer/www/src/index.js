@@ -15,7 +15,7 @@ import {
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = '79c63a4';
+const FW_CURRENT = 'b30d0a0';
 
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1 << 17;
@@ -141,8 +141,10 @@ async function connect() {
         port.onReceive = (data) => {
             const text = textDecoder.decode(data);
             console.log('connect string: ', text);
-            const match = text.match(/^!FW (\w+)/);
+            console.log(2)
+            const match = text.match(/^!FW ([A-Za-z0-9]+)/);
             const fw = match?.[1];
+            console.log('match', match, fw);
             if (fw !== FW_CURRENT) {
                 $('.download-firmware').classList.remove('hidden');
             }
