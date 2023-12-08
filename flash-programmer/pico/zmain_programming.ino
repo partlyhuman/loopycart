@@ -7,7 +7,7 @@
 static int bootErrors = 0;
 
 void loop_programming() {
-  static uint8_t buf[64];
+  static uint8_t buf[USB_BUFSIZE];
   static bool isProgrammingFlash = false;
   static bool isProgrammingSram = false;
   static uint32_t addr = 0;
@@ -205,6 +205,7 @@ void onUsbConnect(bool connected) {
     // Ensure we append existing string buffer S which contains any preexisting boot logging
     sprintf(connectStr, "!FW %s\r\n!HW %d\r\n", GIT_COMMIT, HW_REVISION);
     usb_web.write((uint8_t *)connectStr, USB_BUFSIZE);
+    usb_web.write('\r');
     usb_web.flush();
 
     if (len > 0) {
