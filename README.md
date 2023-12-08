@@ -2,7 +2,7 @@
 
 This is a flashcart/devcart for the Casio Loopy. It's currently in final QA. This will be updated when it is publicized more widely.
 
-If you already have your Floopy Drive, you may want to see the [User's Guide](wiki/).
+If you already have your Floopy Drive, you may want to see the [User's Guide](https://github.com/partlyhuman/loopycart/wiki).
 
 To help find your way around:
 
