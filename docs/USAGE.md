@@ -1,6 +1,6 @@
 # Floopy Drive User Guide
 
-The Floopy Drive doesn't have an SD card or a menu on the Loopy itself, you'll manage your ROMs using a computer.
+Unlike many flash carts, the Floopy Drive doesn't have an SD card or a menu that runs on the Loopy itself. You'll use your computer to flash games to it. This will show you how!
 
 # Getting Started
 
@@ -11,25 +11,23 @@ You'll need:
 * A USB-C cable (C-to-C or A-to-C, whatever works with your computer)
 * Chrome or another browser that [supports WebUSB](https://caniuse.com/webusb)
 
-Plug the Floopy Drive into a free port on your computer. If Chrome is running, you should get a notification that says "RP2040 Zero detected." Click this and you'll get sent to the web interface.
+Plug the Floopy Drive into a free port on your computer. If Chrome is running, you should get a notification that says "Floopy Drive detected." 
 
 ![Notification](notification.png)
 
-This will navigate you to the web interface. You can also get there by navigating to [f.loopy.land](https://f.loopy.land). 
+Tapping this will navigate you to the web interface at [f.loopy.land](https://f.loopy.land). 
 
-Tap "Connect."
+Tap the "Connect" button on the page.
 
-You'll get another Chrome dialog asking to confirm the pairing:
+You'll get another Chrome dialog letting you choose which device to pair to:
 
 ![f.loopy.land wants to connect](wants-to-connect.png)
 
-Select the "RP2040 Zero" and tap "Connect."
-
-The Floopy Drive should now be connected!
+Select the "Floopy Drive" and tap "Connect." Your Floopy Drive is now paired and ready to go!
 
 ## Windows Users
 
-Unfortunately, the default drivers on Windows aren't suitable for WebUSB. If Chrome does not pop up a notification when plugging in the drive, an additional first-time setup step is required.
+Unfortunately, the default drivers on Windows aren't suitable for WebUSB. If you don't see the notification above when plugging in the Floopy Drive with Chrome already open, try updating the drivers:
 
 Please download the latest [Zadig](https://zadig.akeo.ie/).
 
@@ -37,15 +35,15 @@ Connect the Floopy Drive and run Zadig.
 
 ![Zadig](zadig.png)
 
-Click "Options > List All Devices" and the device selection pulldown should have a few options. Click the "RP2040 Zero" in this list to select the Floopy Drive.
+Click "Options > List All Devices" and the device selection pulldown should have a few options. Click the "Floopy Drive" in this list to select the Floopy Drive.
 
-By default, Zadig should show options to update the driver (most likely from "libusb0") to "WinUSB". Ensure "WinUSB" is selected on the right side, and click "Replace Driver." Be patient, installation can take a few seconds.
+By default, Zadig should show options to update the driver (most likely *from* "libusb0") *to* "WinUSB". This default is exactly what you want, no twiddling required. With "WinUSB" selected on the right side, tap "Replace Driver." Be patient, installation can take up to a minute.
 
 Once it's done running, Chrome will detect the Floopy Drive right away, no need to unplug the device.
 
-## After Initial Setup
+## After Initial Pairing
 
-Chrome will remember your pairing, so in the future, all you have to do is plug in the Floopy Drive and tap the "RP2040 Zero detected" notification. That's it!
+Chrome will remember your pairing, so in the future, all you have to do is plug in the Floopy Drive and tap the "Floopy Drive detected" notification.
 
 ## Disconnecting
 
@@ -57,11 +55,42 @@ The Floopy Drive uses a CR2032 battery to keep your saves alive. If you are losi
 
 (No data are available yet regarding the lifespan of the battery.)
 
+
+
 # Using the Floopy Drive
 
-**NOTE** I'll be adding a user-friendly mode to the web interface in the coming days. This will be a drag-and-drop interface with nothing to configure. At that time, the existing interface will be tucked away as the "Advanced mode."
+On the Floopy Drive page, just drag a Loopy ROM into the indicated area and it'll flash the game.
+
+Saves are automatically backed up whenever you plug in the drive. When you switch back to a game you were playing before, your old save will be there waiting for you.
+
+## ROMS
+
+The preferred ROM set for the Floopy Drive is called "CASIO LOOPY ROMS COMPLETE SET [verified 2023]". These are all confirmed working with the Floopy Drive.
+
+**NOTE** ROMs in big-endian are expected by the Floopy Drive, however, if you use a little-endian ROM, we will try to detect this and swap the bytes for you transparently. So other ROM sets should work too.
+
+## Saves
+
+Saves are tested to be compatible with [Loopy My Seal Emulator](https://github.com/PSI-Rockin/LoopyMSE) and MAME.
+
+
+
+# Updating Firmware
+
+The Floopy Drive site will alert you if a newer version of firmware is available. To upgrade:
+
+* Grab the latest firmware by tapping the link provided
+* Insert a pin/paperclip into the hole in the rear of the cart. You should feel a tactile button at the bottom of it
+* Plug the Floopy Drive in while the button is held down
+* If done properly, a USB drive called "RPI-RP2" will appear
+* Copy the downloaded `pico.ino.uf2` file to the drive
+* That's all! The Floopy Drive will automatically reboot and reconnect.
+
+
 
 # Advanced Mode
+
+An advanced mode is available on the Floopy Land flasher. Check Advanced to use this interface. 
 
 An understanding of the Floopy Drive's internals will help. The Floopy Drive has:
 
@@ -84,23 +113,15 @@ An understanding of the Floopy Drive's internals will help. The Floopy Drive has
 * SRAM / Backup - backs up the current game's save file to the Pico flash. Again this is stored on your cart. Do this *before* switching from your existing game to a new game.
 * SRAM / Restore - if it can find a backed up save for the current game, loads it from the Pico flash. Do this *after* switching to a new game that you've previously played on your Floopy Drive.
 * SRAM / Choose File - either choose a Loopy save file here, or drag and drop a save onto it. See below for more on Saves. Writing will begin as soon as you choose a file.
+* DEVICE / Set Nickname - add your name to personalize your Floopy Drive just like PC Collection! The device name will be updated the next time you plug it in.
 
 ## Typical Operation
 
 Say you want to change the game on your Floopy Drive from OldGame to NewGame. The typical steps would be:
 
-1. SRAM / Backup
-2. Erase 2MB (assuming NewGame is 2MB) or Full Erase (if NewGame is 3MB)
-3. ROM / Choose File and select NewGame.bin
-4. SRAM / Restore
+1. Erase 2MB (assuming NewGame is 2MB) or Full Erase (if NewGame is 3MB)
+2. ROM / Choose File and select NewGame.bin
+3. SRAM / Restore if you've played it before on the Floopy Drive
 
-## ROMS
+Note that you don't need to backup the SRAM manually since that's done every time you plug in the Floopy Drive.
 
-The preferred ROM set for the Floopy Drive is called "CASIO LOOPY ROMS COMPLETE SET [verified 2023]". These are all confirmed working with the Floopy Drive.
-
-**NOTE** ROMs in big-endian are expected by the Floopy Drive, however, if you use a little-endian ROM, we will try to detect this and swap the bytes for you transparently. So other ROM sets should work too.
-
-
-## Saves
-
-Saves are tested to be compatible with [Loopy My Seal Emulator](https://github.com/PSI-Rockin/LoopyMSE) and MAME.
