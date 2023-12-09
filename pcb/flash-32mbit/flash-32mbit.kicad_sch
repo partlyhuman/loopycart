@@ -6,8 +6,8 @@
 
   (title_block
     (title "FloopyDrive")
-    (date "2023-10-22")
-    (rev "8")
+    (date "2023-12-09")
+    (rev "9")
     (company "@partlyhuman")
   )
 
@@ -4458,16 +4458,16 @@
     )
   )
 
-  (symbol (lib_id "LOOPY_Diode:PMEG2005CT_215") (at 72.39 254 90) (unit 1)
+  (symbol (lib_id "LOOPY_Diode:PMEG2005CT_215") (at 72.39 254 270) (mirror x) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 34f5239c-b88a-4036-91c1-865a3ca80e0b)
     (property "Reference" "D2" (at 66.04 252.1331 90)
-      (effects (font (size 1.27 1.27)) (justify left))
+      (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Value" "PMEG2005CT_215" (at 66.04 254.6731 90)
-      (effects (font (size 1.27 1.27)) (justify left))
+      (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Footprint" "Package_TO_SOT_SMD:SOT-23-3" (at 59.69 252.73 0)
+    (property "Footprint" "Package_TO_SOT_SMD:SOT-23-3" (at 85.09 252.73 0)
       (effects (font (size 1.27 1.27)) (justify bottom) hide)
     )
     (property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PMEG2005CT.pdf" (at 72.39 254 0)
