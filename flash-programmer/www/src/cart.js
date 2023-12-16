@@ -92,9 +92,10 @@ export function swapBytes(buffer) {
     }
 }
 
+/**
+ * Not needed with REV8+ hardware, but restore if any per-game tweaks are needed?
+ */
 export function stealthPatch(buffer, checksum = null) {
-    console.log("SKIPPING STEALTH PATCHING");
-    return;
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
     checksum ??= getChecksum(buffer);
     const view = new DataView(buffer);

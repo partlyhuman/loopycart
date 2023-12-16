@@ -8,7 +8,6 @@ import {
     HEADER_OK,
     HEADER_UNRECOGNIZED,
     lookupCartDatabase,
-    stealthPatch,
     swapBytes,
     trimEnd
 } from "./cart";
@@ -366,7 +365,6 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     const info = parseRom(buffer);
     if (info) {
         console.log(`Identified ${info.name}`);
-        stealthPatch(buffer);
     }
 
     console.log('UPLOADING!');
