@@ -17,6 +17,11 @@
 #define HALT while (true)
 
 #define ADDRBITS 22
+// 64kb blocks
+#define FLASH_BLOCK_SIZE 0x010000
+// two 2mb banks
+#define FLASH_BANK_SIZE 0x200000
+#define FLASH_SIZE FLASH_BANK_SIZE << 1
 #define CMD_RESET 0xff
 #define PIN_INSERTED 14
 #define USB_BUFSIZE 64
@@ -42,7 +47,7 @@ unsigned long stopwatch;
 uint16_t SRD;
 #define SR(n) bitRead(SRD, n)
 
-#define BLUE 0x000040
+#define BLUE 0x0000FF
 Adafruit_NeoPixel led(1, 16, NEO_RGB);
 
 inline void ledColor(uint32_t c) {
@@ -102,7 +107,7 @@ inline void setAddress(uint32_t addr) {
   // if ((diff & 0x0000ff00) != 0) {
   //   mcpAddr0.setPort((addr >> 8) & 0xff, B);
   // }
- 
+
   // A0-A15
   if ((diff & 0x0000ffff) != 0) {
     mcpAddr0.setPort(addr & 0xff, (addr >> 8) & 0xff);
@@ -117,8 +122,8 @@ inline void setAddress(uint32_t addr) {
 }
 
 // Control pins migrated to io expanders so build a bitmask with these. They're all active low so & these:
-const uint8_t IDLE  = 0xff;
-const uint8_t OE    = ~(1 << 0);
+const uint8_t IDLE = 0xff;
+const uint8_t OE = ~(1 << 0);
 const uint8_t RAMCE = ~(1 << 1);
 const uint8_t RAMWE = ~(1 << 2);
 const uint8_t ROMCE = ~(1 << 3);
@@ -171,6 +176,9 @@ void echo_all(const char *buf, uint32_t count = 0) {
   // }
 }
 
+// Ensures the client doesn't leave stuff in the buffer waiting to parse. Really shouldn't have to do this
+// TODO fix on client, don't leave stuff unparsed in buffer
+const char *OKSTR = "!OK\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r";
 void echo_ok() {
-  echo_all("!OK\r\n", 4);
+  echo_all(OKSTR);
 }

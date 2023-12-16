@@ -18,9 +18,13 @@ html, body {
   display: none !important;
 }
 
-h1, h2, h3, h4, h5, .loopyfont {
+h1, h2, h3, h4, h5, .loopyfont, .h1 {
   font-family: 'Loopy', serif;
   text-transform: uppercase;
+}
+
+.h1 {
+  font-size: xx-large;
 }
 
 body {
@@ -141,17 +145,19 @@ button#connect {
 }
 
 
-
 body {
   .advanced {
     display: none;
   }
+
   .simple {
     display: inherit;
   }
+
   &.advanced .advanced {
     display: inherit;
   }
+
   &.advanced .simple {
     display: none;
   }
@@ -159,7 +165,6 @@ body {
 
 body.busy {
   .simple .drop {
-    pointer-events: none;
     visibility: hidden;
   }
 }
@@ -180,7 +185,8 @@ body.busy {
   &.over {
     border: 4px dashed blue;
   }
-    text-align: center;
+
+  text-align: center;
 
   .drop-encourage {
     visibility: hidden;

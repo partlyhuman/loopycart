@@ -1,7 +1,7 @@
 // Make sure the BE1 don't keep getting twiddled back and forth,
 // use 0 as a command address BUT KEEP BE1 SET
 inline uint32_t zeroWithBank(uint32_t addr) {
-  return addr & (1 << ADDRBITS - 1);
+  return addr & FLASH_BANK_SIZE;
 }
 
 // Bus states - Sharp flash uses 3 wire control and these are predefined states
@@ -90,33 +90,37 @@ void flashCommand(uint32_t addr, uint16_t data) {
 
 // TODO involve STS pin now that we have access to it
 // returns TRUE if OK
-bool flashStatusCheck(uint32_t addr) {
+bool flashStatusCheck(uint32_t addr = 0, bool clearIfError = true) {
   bool ok = true;
   flashCommand(zeroWithBank(addr), 0x70);
   flashReadStatus();
   if (!SR(7)) {
-    echo_all("STATUS busy");
+    echo_all("STATUS busy\r\n");
     ok = false;
   }
   if (SR(5) && SR(4)) {
-    echo_all("STATUS improper command");
+    echo_all("STATUS improper command\r\n");
     ok = false;
   }
   if (SR(3)) {
-    echo_all("STATUS undervoltage");
+    echo_all("STATUS undervoltage\r\n");
     ok = false;
   }
   if (SR(1)) {
-    echo_all("STATUS locked");
+    echo_all("STATUS locked\r\n");
     ok = false;
   }
   if (SR(2)) {
-    echo_all("STATUS write suspended");
+    echo_all("STATUS write suspended\r\n");
     ok = false;
   }
   if (SR(6)) {
-    echo_all("STATUS erase suspended");
+    echo_all("STATUS erase suspended\r\n");
     ok = false;
+  }
+  if (!ok && clearIfError) {
+    // clear status register
+    flashCommand(0, 0x50);
   }
   return ok;
 }
@@ -124,8 +128,8 @@ bool flashStatusCheck(uint32_t addr) {
 // Major functions
 
 void flashEraseBank(int bank) {
-  int32_t bankAddress = bank ? (1 << 21) : 0;
-  len = sprintf(S, "Erase bank address %06xh\r", bankAddress);
+  int32_t bankAddress = bank ? FLASH_BANK_SIZE : 0;
+  len = sprintf(S, "Erase bank %d\r", bank);
   echo_all(S, len);
 
   delayMicroseconds(100);
@@ -174,18 +178,28 @@ void flashEraseBank(int bank) {
   delayMicroseconds(100);
 }
 
-void flashErase() {
+void flashEraseAll() {
   stopwatch = millis();
-
-  echo_all("Erasing bank 0...\r");
   flashEraseBank(0);
-
-  echo_all("!P.5\r");
-  echo_all("Erasing bank 1...\r");
   flashEraseBank(1);
-
-  len = sprintf(S, "Erased in %f sec\r", (millis() - stopwatch) / 1000.0);
+  len = sprintf(S, "Erased in %0.2fs\r\n", (millis() - stopwatch) / 1000.0);
   echo_all(S, len);
+}
+
+bool flashEraseBlock(uint32_t startAddr) {
+  //startAddr = startAddr & ~(FLASH_BLOCK_SIZE - 1);
+  // len = sprintf(S, "Erase block %06xh-%06xh\r\n", startAddr, startAddr + FLASH_BLOCK_SIZE - 1);
+  // echo_all(S, len);
+
+  flashCommand(startAddr, 0x20);
+  flashCommand(startAddr, 0xd0);
+  SRD = 0;
+  do {
+    delayMicroseconds(100);
+    flashReadStatus();
+  } while (SR(7) == 0);
+
+  return flashStatusCheck();
 }
 
 void flashClearLocks() {
@@ -197,7 +211,7 @@ void flashClearLocks() {
     delayMicroseconds(10);
   } while (!SR(7));
 
-  if (flashStatusCheck(0)) {
+  if (flashStatusCheck()) {
     echo_all("Lock bits cleared successfully\r");
   }
 }
@@ -260,7 +274,7 @@ uint32_t flashCartHeaderSramSize() {
   return sramEnd - sramStart + 1;
 }
 
-void flashInspect(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
+void flashInspect(uint32_t starting, uint32_t upto) {
   flashCommand(zeroWithBank(starting), 0xff);
   delayMicroseconds(1);
   busRead();
@@ -280,7 +294,7 @@ void flashInspect(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
   busIdle();
 }
 
-void flashDump(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
+void flashDump(uint32_t starting = 0, uint32_t upto = FLASH_SIZE) {
   flashCommand(zeroWithBank(starting), CMD_RESET);
   delayMicroseconds(100);
   busRead();
@@ -295,7 +309,7 @@ void flashDump(uint32_t starting = 0, uint32_t upto = (1 << ADDRBITS)) {
 }
 
 // Returns whether programming should continue
-bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expectedWords) {
+bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expectedBytes) {
 #ifdef DEBUG_LED
   ledColor(0x400040);
 #endif
@@ -324,7 +338,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   // bufPtr - step through buffer using this
 
   // Multi-word write can write up to 32 bytes / 16 words
-  const uint32_t bankBoundary = 1 << (ADDRBITS - 1);
+  const uint32_t bankBoundary = FLASH_BANK_SIZE;
   const size_t MAX_MULTIBYTE_WRITE = 32;
   bool atBoundary = false;
   uint32_t currentBank = zeroWithBank(addr);
@@ -386,7 +400,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     } while (!SR(7));
 
 #ifdef DEBUG_LED
-    ledColor(0x006000);
+    ledColor(0x00FF00);
 #endif
 
     // XSR.7 == 1 now, ready for write
@@ -423,7 +437,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     }
   }
 
-  if (addr >= 2 * expectedWords) {
+  if (addr >= expectedBytes) {
     do {
       delayMicroseconds(100);
       flashReadStatus();
@@ -433,7 +447,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all(S, len);
-    
+
     busIdle();
     return false;
   }
@@ -454,7 +468,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     flashCommand(addr, word);
   }
 
-  if (addr >= expectedWords * 2) {
+  if (addr >= expectedBytes) {
     flashCommand(0, CMD_RESET);
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);

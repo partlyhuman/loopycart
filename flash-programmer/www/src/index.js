@@ -15,7 +15,7 @@ import {
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = 'b30d0a0';
+const FW_CURRENT = '1914eb0';
 
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1 << 17;
@@ -140,11 +140,8 @@ async function connect() {
 
         port.onReceive = (data) => {
             const text = textDecoder.decode(data);
-            console.log('connect string: ', text);
-            console.log(2)
             const match = text.match(/^!FW ([A-Za-z0-9]+)/);
             const fw = match?.[1];
-            console.log('match', match, fw);
             if (fw !== FW_CURRENT) {
                 $('.download-firmware').classList.remove('hidden');
             }
@@ -307,16 +304,19 @@ async function simpleFlash(/** @type File */ file) {
         //     await commandWithProgress('Sr\r', 'Backing up current save');
         // }
 
+        // Erase only what's needed - great for small homebrew
+        await commandWithProgress(`E${buffer.byteLength}\r`, `Erasing flash`);
+
         // Erase either half or full
-        if (originalSize <= 0x200000) {
-            await commandWithProgress('E0\r', 'Erasing flash (half)');
-        } else {
-            await commandWithProgress('E\r', 'Erasing flash (all)');
-        }
+        // if (originalSize <= 0x200000) {
+        //     await commandWithProgress('E0\r', 'Erasing flash (half)');
+        // } else {
+        //     await commandWithProgress('E\r', 'Erasing flash (all)');
+        // }
 
         // Flash
         setStepInfo(`Flashing ${newGameName}`)
-        await port.send(padCommand(`P${buffer.length}`));
+        await port.send(padCommand(`P${buffer.byteLength}`));
         await uploadChunked(buffer);
 
         // Restore old save or format SRAM if no existing backup
@@ -342,6 +342,7 @@ $drop.addEventListener('drop', event => {
     event.target.classList.remove('over');
     simpleFlash(event.dataTransfer.files?.[0]).then();
 });
+$drop.addEventListener('click', () => $('.flash-upload-simple').click());
 $drop.addEventListener('dragover', (event) => event.target.classList.add('over'));
 $drop.addEventListener('dragleave', (event) => event.target.classList.remove('over'));
 $drop.addEventListener('dragend', (event) => event.target.classList.remove('over'));
@@ -373,8 +374,16 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     buffer = trimEnd(buffer);
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
-    await port.send(padCommand(`P${buffer.length}`));
+    await port.send(padCommand(`P${buffer.byteLength}`));
     await uploadChunked(buffer);
+});
+
+$('.flash-upload-simple').addEventListener('change', ({target: {files}}) => {
+    if (!files || files.length === 0) {
+        console.log('No file selected');
+        return;
+    }
+    simpleFlash(files[0]).then();
 });
 
 $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
@@ -391,7 +400,7 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
         return;
     }
 
-    await port.send(padCommand(`Ps${buffer.byteLength / 2}`));
+    await port.send(padCommand(`Ps${buffer.byteLength}`));
     await uploadChunked(buffer);
 });
 
@@ -462,6 +471,10 @@ $('.sram-erase').addEventListener('click', async () => {
 $('.device-nickname button').addEventListener('click', async () => {
     const nick = $('.device-nickname input').value;
     await port.send(`N${nick}\r`);
+});
+
+$('.manual-command button').addEventListener('click', async () => {
+    await port.send(`${($('.manual-command input').value)}\r`);
 });
 
 $('.cls').addEventListener('click', () => {

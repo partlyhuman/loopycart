@@ -11,7 +11,7 @@ void loop_programming() {
   static bool isProgrammingFlash = false;
   static bool isProgrammingSram = false;
   static uint32_t addr = 0;
-  static uint32_t expectedWords;
+  static uint32_t totalBytes;
   static uint32_t idleSince = 0;
 
 
@@ -31,17 +31,17 @@ void loop_programming() {
   }
   idleSince = 0;
 
-  size_t bufLen = usb_web.read(buf, 64);
+  size_t bufLen = usb_web.read(buf, USB_BUFSIZE);
 
   if (bufLen == 0) {
     return;
   }
 
   if (isProgrammingFlash) {
-    isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, expectedWords);
+    isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, totalBytes);
     if (!isProgrammingFlash) ledColor(0);
   } else if (isProgrammingSram) {
-    isProgrammingSram = sramWriteBuffer(buf, bufLen, addr, expectedWords * 2);
+    isProgrammingSram = sramWriteBuffer(buf, bufLen, addr, totalBytes);
     if (!isProgrammingSram) ledColor(0);
   }
 
@@ -49,22 +49,54 @@ void loop_programming() {
     // ERASE COMMAND
     ledColor(BLUE);
     if (buf[1] == '\r') {
-      flashClearLocks();
-      flashErase();
-      flashCommand(0, CMD_RESET);
-      echo_ok();
-    } else if (buf[1] == '0' && buf[2] == '\r') {
-      flashClearLocks();
-      flashEraseBank(0);
-      flashCommand(0, CMD_RESET);
-      echo_ok();
-    } else if (buf[1] == '1' && buf[2] == '\r') {
-      flashClearLocks();
-      flashEraseBank(1);
+      flashEraseAll();
       flashCommand(0, CMD_RESET);
       echo_ok();
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramErase();
+      echo_ok();
+    } else if (buf[1] == '0' && buf[2] == '\r') {
+      // DEPRECATED
+      flashEraseBank(0);
+      flashCommand(0, CMD_RESET);
+      echo_ok();
+    } else if (buf[1] == '1' && buf[2] == '\r') {
+      // DEPRECATED
+      flashEraseBank(1);
+      flashCommand(0, CMD_RESET);
+      echo_ok();
+    } else if (sscanf((char *)buf, "E%d\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
+      stopwatch = millis();
+      len = sprintf(S, "Erasing %d bytes of flash up to %06xh\r\n", totalBytes, totalBytes);
+      echo_all(S, len);
+      for (addr = 0; addr < totalBytes; addr += FLASH_BLOCK_SIZE) {
+        len = sprintf(S, "%06xh ", addr);
+        echo_all(S, len);
+        if (!flashEraseBlock(addr)) {
+          echo_all("\r\n!ERR ABORTING ERASE\r\n");
+          return;
+        }
+      }
+      // // NOTE: Erasing by bank isn't faster than erasing by block, so this adds complexity but saves no time
+      // addr = 0;
+      // while (addr < totalBytes) {
+      //   len = sprintf(S, "%06xh ", addr);
+      //   echo_all(S, len);
+      //   if (addr == 0 && totalBytes >= FLASH_BANK_SIZE) {
+      //     flashEraseBank(0);
+      //     addr += FLASH_BANK_SIZE;
+      //   } else if (addr == FLASH_BANK_SIZE && totalBytes == FLASH_BANK_SIZE * 2) {
+      //     flashEraseBank(1);
+      //     addr += FLASH_BANK_SIZE;
+      //   } else {
+      //     if (!flashEraseBlock(addr)) {
+      //       echo_all("\r\n!ERR ABORTING ERASE\r\n");
+      //       return;
+      //     }
+      //   }
+      // }
+      len = sprintf(S, "\r\nErased %d bytes in %0.2f sec using block erasing\r\n", addr, (millis() - stopwatch) / 1000.0);
+      echo_all(S, len);
       echo_ok();
     }
     ledColor(0);
@@ -83,9 +115,9 @@ void loop_programming() {
     echo_all("\r\n------\r\n");
     flashInspect(0x100000, 0x100100);
     echo_all("\r\n---FLASH-upper---\r\n");
-    flashInspect(0x200000, 0x200100);
+    flashInspect(0x200000, FLASH_BANK_SIZE + 0x000100);
     echo_all("\r\n------\r\n");
-    flashInspect(0x300000, 0x300100);
+    flashInspect(0x300000, FLASH_BANK_SIZE + 0x100100);
     echo_all("\r\n---SRAM---\r\n");
     sramInspect(0, 0x100);
     echo_all("\r\n---FILESYSTEM---\r\n");
@@ -110,8 +142,8 @@ void loop_programming() {
     // DUMP COMMAND
     ledColor(BLUE);
     // followed by expected # of bytes
-    if (sscanf((char *)buf, "D%d\r", &expectedWords) && expectedWords > 0 && expectedWords <= 1 << ADDRBITS) {
-      flashDump(0, expectedWords);
+    if (sscanf((char *)buf, "D%d\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
+      flashDump(0, totalBytes);
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramDump();
     }
@@ -120,18 +152,18 @@ void loop_programming() {
 
   else if (buf[0] == 'P') {
     // PROGRAM COMMAND
-    if (sscanf((char *)buf, "P%d\r", &expectedWords)) {
+    if (sscanf((char *)buf, "P%d\r", &totalBytes)) {
       // program flash followed by expected # of bytes
-      len = sprintf(S, "Programming %d bytes to flash\r", expectedWords * 2);
+      len = sprintf(S, "Programming %d bytes to flash\r", totalBytes);
       echo_all(S, len);
       isProgrammingFlash = true;
       addr = 0;
       stopwatch = millis();
       busIdle();
       ledColor(BLUE);
-    } else if (sscanf((char *)buf, "Ps%d\r", &expectedWords)) {
+    } else if (sscanf((char *)buf, "Ps%d\r", &totalBytes)) {
       // program SRAM followed by expected # of bytes
-      len = sprintf(S, "Programming %d bytes to SRAM\r", expectedWords * 2);
+      len = sprintf(S, "Programming %d bytes to SRAM\r", totalBytes);
       echo_all(S, len);
       isProgrammingSram = true;
       addr = 0;
@@ -269,6 +301,11 @@ void setup_programming() {
       sramSaveFile(filename, min(flashCartHeaderSramSize(), SRAM_SIZE));
       ledColor(0);
     }
+  }
+
+  // Clear flash lock bits preemptively whenever Pico is booted up
+  if (!bootErrors) {
+    flashClearLocks();
   }
 
   // Let either claim the USB
