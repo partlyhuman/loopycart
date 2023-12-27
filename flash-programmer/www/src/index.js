@@ -346,11 +346,18 @@ $drop.addEventListener('dragover', (event) => event.target.classList.add('over')
 $drop.addEventListener('dragleave', (event) => event.target.classList.remove('over'));
 $drop.addEventListener('dragend', (event) => event.target.classList.remove('over'));
 
-$('#advanced-mode').addEventListener('change', event => {
+const $advancedMode = $('#advanced-mode');
+if (localStorage.getItem('advanced') === 'true') {
+    $body.classList.add('advanced');
+    $advancedMode.checked = true;
+}
+$advancedMode.addEventListener('change', event => {
     if (event.target.checked) {
         $body.classList.add('advanced');
+        localStorage.setItem('advanced', 'true');
     } else {
         $body.classList.remove('advanced');
+        localStorage.setItem('advanced', 'false');
     }
 });
 
