@@ -70,7 +70,7 @@ void sramSaveFile(const char* filename, uint32_t saveSize = SRAM_SIZE) {
 bool sramLoadFile(const char* filename) {
   if (!LittleFS.exists(filename)) {
     len = sprintf(S, "file %s doesn't exist\r\n", filename);
-    echo_all(S, len);
+    echo_all();
     return false;
   }
   File file = LittleFS.open(filename, "r");
@@ -83,7 +83,7 @@ bool sramLoadFile(const char* filename) {
   }
   if (fileSize != expectedFileSize) {
     len = sprintf(S, "Backup size %s is wrong size, expected %d, actual %d, continuing anyway...\r\n", filename, expectedFileSize, fileSize);
-    echo_all(S, len);
+    echo_all();
   }
 
   sramSelect();
@@ -118,17 +118,16 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
 
   for (uint32_t addr = starting; addr < upto; addr++) {
     if (addr % 0x10 == 0) {
-      echo_all("\r", 1);
-      len = sprintf(S, "%06xh\t\t", addr);
-      echo_all(S, len);
+      len = sprintf(S, "\r%06xh\t\t", addr);
+      echo_all();
     }
     len = sprintf(S, "%02x\t", sramReadByte(addr));
-    echo_all(S, len);
+    echo_all();
   }
 
   sramDeselect();
   databusWriteMode();
-  echo_all("\r\n\r\n", 4);
+  // echo_all("\r\n\r\n", 4);
 }
 
 void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
@@ -165,7 +164,7 @@ bool sramErase() {
   }
 
   len = sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", SRAM_SIZE, (millis() - stopwatch) / 1000.0);
-  echo_all(S, len);
+  echo_all();
 
   sramDeselect();
   return true;
@@ -178,7 +177,7 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint32_t expec
     // echo progress at fixed intervals
     if ((addr & 0x1fff) == 0) {
       len = sprintf(S, "%06xh ", addr);
-      echo_all(S, len);
+      echo_all();
     }
   }
 
@@ -187,7 +186,7 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint32_t expec
     sramDeselect();
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
-    echo_all(S, len);
+    echo_all();
     echo_ok();
 
     return false;

@@ -68,10 +68,10 @@ void loop_programming() {
     } else if (sscanf((char *)buf, "E%d\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
       stopwatch = millis();
       len = sprintf(S, "Erasing %d bytes of flash up to %06xh\r\n", totalBytes, totalBytes);
-      echo_all(S, len);
+      echo_all();
       for (addr = 0; addr < totalBytes; addr += FLASH_BLOCK_SIZE) {
         len = sprintf(S, "%06xh ", addr);
-        echo_all(S, len);
+        echo_all();
         if (!flashEraseBlock(addr)) {
           echo_all("\r\n!ERR ABORTING ERASE\r\n");
           return;
@@ -81,7 +81,7 @@ void loop_programming() {
       // addr = 0;
       // while (addr < totalBytes) {
       //   len = sprintf(S, "%06xh ", addr);
-      //   echo_all(S, len);
+      //   echo_all();
       //   if (addr == 0 && totalBytes >= FLASH_BANK_SIZE) {
       //     flashEraseBank(0);
       //     addr += FLASH_BANK_SIZE;
@@ -96,7 +96,7 @@ void loop_programming() {
       //   }
       // }
       len = sprintf(S, "\r\nErased %d bytes in %0.2f sec using block erasing\r\n", addr, (millis() - stopwatch) / 1000.0);
-      echo_all(S, len);
+      echo_all();
       echo_ok();
     }
     ledColor(0);
@@ -107,9 +107,9 @@ void loop_programming() {
     // flashId();
     echo_all("\r\n---CART-ID---\r\n");
     len = sprintf(S, "Cart header %s\r\n", flashCartHeaderCheck() ? "OK" : "NOT OK");
-    echo_all(S, len);
+    echo_all();
     len = sprintf(S, "Cart ID %08x\r\n", flashCartHeaderId());
-    echo_all(S, len);
+    echo_all();
     echo_all("\r\n---FLASH-lower---\r\n");
     flashInspect(0x000000, 0x000100);
     echo_all("\r\n------\r\n");
@@ -132,8 +132,8 @@ void loop_programming() {
     // LittleFS.info64(info);
     FSInfo info;
     LittleFS.info(info);
-    len = sprintf(S, "%d/%d bytes used, %0.0f%% full\r\ntotal bytes=%d, block size=%d, pageSize=%d\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes, info.blockSize, info.pageSize);
-    echo_all(S, len);
+    len = sprintf(S, "%d/%d bytes used, %0.0f%% full\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes);
+    echo_all();
 
     busIdle();
   }
@@ -155,7 +155,7 @@ void loop_programming() {
     if (sscanf((char *)buf, "P%d\r", &totalBytes)) {
       // program flash followed by expected # of bytes
       len = sprintf(S, "Programming %d bytes to flash\r", totalBytes);
-      echo_all(S, len);
+      echo_all();
       isProgrammingFlash = true;
       addr = 0;
       stopwatch = millis();
@@ -164,7 +164,7 @@ void loop_programming() {
     } else if (sscanf((char *)buf, "Ps%d\r", &totalBytes)) {
       // program SRAM followed by expected # of bytes
       len = sprintf(S, "Programming %d bytes to SRAM\r", totalBytes);
-      echo_all(S, len);
+      echo_all();
       isProgrammingSram = true;
       addr = 0;
       stopwatch = millis();
@@ -190,14 +190,14 @@ void loop_programming() {
       // backup SRAM to file
       uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
       len = sprintf(S, "Backing up first %dkb of SRAM to %s\r\n", sramSize / 1024, filename);
-      echo_all(S, len);
+      echo_all();
 
       sramSaveFile(filename, sramSize);
       echo_ok();
     } else if (buf[1] == 'w' && buf[2] == '\r') {
       // restore SRAM from file
       len = sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
-      echo_all(S, len);
+      echo_all();
       sramLoadFile(filename) || sramErase();
       echo_ok();
     } else if (buf[1] == 'f' && buf[2] == '\r') {
@@ -237,12 +237,11 @@ void onUsbConnect(bool connected) {
     // Ensure we append existing string buffer S which contains any preexisting boot logging
     sprintf(connectStr, "!FW %s\r\n!HW %d\r\n", GIT_COMMIT, HW_REVISION);
     usb_web.write((uint8_t *)connectStr, USB_BUFSIZE);
-    usb_web.write('\r');
     usb_web.flush();
 
     if (len > 0) {
       echo_all("!ERR boot log errors found:\r\n");
-      echo_all(S, len);
+      echo_all();
     }
   }
 }

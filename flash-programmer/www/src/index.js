@@ -10,7 +10,7 @@ import {
     lookupCartDatabase,
     swapBytes,
     trimEnd
-} from "./cart";
+} from './cart';
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
@@ -19,7 +19,7 @@ const FW_CURRENT = '1914eb0';
 const SERIAL_BUFFER_SIZE = 64;
 const SRAM_SIZE = 1 << 17;
 const UPLOAD_CHUNK_SIZE = 1024;
-const TRUNCATE_DUMPED_SRAM = false;
+const TRUNCATE_DUMPED_SRAM = true;
 
 const textDecoder = new TextDecoder();
 /** @type Port */
@@ -31,9 +31,8 @@ const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
 const $lines = $('#receiver_lines');
 const $progress = $('#progress');
-const $busyIndicator = $('#busy-indicator');
 
-function sleep(ms) {
+export function sleep(ms) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });
@@ -45,14 +44,22 @@ function waitForStatus() {
     return new Promise(resolve => currentOperationResolver = resolve);
 }
 
-// Pads a command to the serial buffer size (64 bytes) with extra \rs
-// Do this to send a command that expects data to follow, so the command is predictable size
-function padCommand(str) {
-    return `${str}${'\r'.repeat(SERIAL_BUFFER_SIZE)}`.substring(0, SERIAL_BUFFER_SIZE);
+/**
+ * Rounds to next integral serial buffer size
+ * @return {number}
+ */
+function roundSize(s) {
+    return Math.ceil(s / SERIAL_BUFFER_SIZE) * SERIAL_BUFFER_SIZE;
 }
 
-function serialEcho(data) {
-    const text = textDecoder.decode(data);
+// Pads a command to the serial buffer size (64 bytes) with extra \rs
+// Do this to send a command that expects data to follow, so the command is predictable size
+function serialEcho(buffer) {
+    if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
+    const data = (buffer instanceof Uint8Array) ? buffer : new Uint8Array(buffer);
+    // trim null-terminated strings
+    const lastByte = data.indexOf(0x00);
+    const text = textDecoder.decode(lastByte < 0 ? data : data.subarray(0, lastByte));
     if (text.match(/^!OK\b/m)) {
         setProgress(false);
         if (currentOperationResolver) {
@@ -102,12 +109,11 @@ function setProgress(n) {
     }
 }
 
-// TODO change this to refer to the overall page state (add classes to <body>)
 function setBusy(b) {
     if (b) {
-        $busyIndicator.classList.add('busy');
+        $body.classList.add('busy');
     } else {
-        $busyIndicator.classList.remove('busy');
+        $body.classList.remove('busy');
     }
 }
 
@@ -123,7 +129,7 @@ async function showError(str) {
     await sleep(500);
 }
 
-async function commandWithProgress(command, stepInfo = '', indefinite = true) {
+export async function commandWithProgress(command, stepInfo = '', indefinite = true) {
     setProgress(indefinite || 0);
     setStepInfo(stepInfo);
     await port.send(command);
@@ -208,10 +214,14 @@ function parseRom(buffer) {
 
 
 async function downloadAndParseCartHeader() {
-    return getCartDataFromHeader(await download(ADDR_HEADER_END, `D${ADDR_HEADER_END.toString(10)}\r`));
+    const size = roundSize(ADDR_HEADER_END);
+    return getCartDataFromHeader(await download(size, `D${size}\r`));
 }
 
-function download(bytesToDownload, serialCommand) {
+export function download(bytesToDownload, serialCommand) {
+    if (bytesToDownload % SERIAL_BUFFER_SIZE !== 0) {
+        console.warn('Expected download size is not modulo serial buffer size');
+    }
     return new Promise((resolve) => {
         const dumpBuffer = new ArrayBuffer(bytesToDownload);
         console.log(`Dumping ${bytesToDownload} bytes...`);
@@ -236,8 +246,15 @@ function download(bytesToDownload, serialCommand) {
             }
         }
 
-        port.send(serialCommand);
+        port.send(serialCommand).then();
     });
+}
+
+export async function programFlash(buffer) {
+    await port.send(`P${buffer.byteLength}\r`);
+    await uploadChunked(buffer);
+    // Important to allow confirmation text to come from Floopy over serial and be parsed
+    await sleep(250);
 }
 
 async function uploadChunked(buffer) {
@@ -247,10 +264,8 @@ async function uploadChunked(buffer) {
             const chunk = new Uint8Array(buffer.buffer, addr, Math.min(UPLOAD_CHUNK_SIZE, buffer.byteLength - addr));
             addr += chunk.byteLength;
 
-            setBusy(true); // really all this does is prove that when we block the pico really isn't responding anymore - no progress while this stays on
             const {bytesWritten, status} = await port.send(chunk);
             if (status !== "ok") throw new Error(`${status}`);
-            setBusy(false);
             // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
         }
         console.log("DONE!");
@@ -262,7 +277,7 @@ async function uploadChunked(buffer) {
     }
 }
 
-function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
+export function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([dumpBuffer], {type: 'application/octet-stream'}));
     a.download = filename;
@@ -272,13 +287,14 @@ function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
 //------------------- BASIC UI -------------------
 
 async function simpleFlash(/** @type File */ file) {
-    $body.classList.add('busy');
+    setBusy(true);
     try {
         if (!port?.isOpen) {
             throw new Error('Not connected!');
         }
 
         // check to see if dropped is a loopy bin
+        // TODO eliminate word arrays
         let buffer = new Uint16Array(await file.arrayBuffer());
         let {header: newGameHeader, name: newGameName} = parseRom(buffer);
         newGameName ??= "Unrecognized ROM";
@@ -288,10 +304,6 @@ async function simpleFlash(/** @type File */ file) {
         if (originalSize > 0x400000) {
             throw new Error('Bigger than Floopy Drive flash!');
         }
-        // if (newGameHeader.romSize !== originalSize) {
-        //
-        // }
-        // TODO more
         buffer = trimEnd(buffer);
 
         // What's on there right now?
@@ -315,8 +327,7 @@ async function simpleFlash(/** @type File */ file) {
 
         // Flash
         setStepInfo(`Flashing ${newGameName}`)
-        await port.send(padCommand(`P${buffer.byteLength}`));
-        await uploadChunked(buffer);
+        await programFlash(buffer);
 
         // Restore old save or format SRAM if no existing backup
         if (isDifferentGame) {
@@ -327,7 +338,7 @@ async function simpleFlash(/** @type File */ file) {
     } catch (err) {
         await showError(err.message);
     } finally {
-        $body.classList.remove('busy');
+        setBusy(false);
     }
     console.log('done', new Date())
 
@@ -368,6 +379,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
         console.log('No file selected');
         return;
     }
+    // TODO eliminate word arrays
     let buffer = new Uint16Array(await files[0].arrayBuffer());
     const info = parseRom(buffer);
     if (info) {
@@ -379,8 +391,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     buffer = trimEnd(buffer);
     console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
 
-    await port.send(padCommand(`P${buffer.byteLength}`));
-    await uploadChunked(buffer);
+    await programFlash(buffer);
 });
 
 $('.flash-upload-simple').addEventListener('change', ({target: {files}}) => {
@@ -405,7 +416,7 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
         return;
     }
 
-    await port.send(padCommand(`Ps${buffer.byteLength}`));
+    await port.send(`Ps${buffer.byteLength}\r`);
     await uploadChunked(buffer);
 });
 
@@ -438,9 +449,7 @@ $('.sram-format-fs').addEventListener('click', async () => {
 $('.flash-download').addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     console.log(`downloading ${header.romSize} bytes`);
-    saveBufferToFile(await download(header.romSize, `D${header.romSize.toString(10)}\r`), 'loopy-rom.bin');
-    // const bytes = 1 << 20;
-    // saveBufferToFile(await download(bytes, `D${bytes.toString(10)}\r`), 'loopy-rom.bin');
+    saveBufferToFile(await download(header.romSize, `D${header.romSize}\r`), 'loopy-rom.bin');
 });
 
 $('.sram-download').addEventListener('click', async () => {

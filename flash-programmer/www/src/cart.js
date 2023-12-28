@@ -1,5 +1,6 @@
-import LoopyCsvText from "./data/cart_database";
-import {sprintf} from "sprintf-js";
+import cartDatabase from './data/cart_database';
+// import LoopyCsvText from './data/cart_database_csv';
+import {sprintf} from 'sprintf-js';
 
 export const OFFSET_ROM = 0x0E000000;
 export const OFFSET_SRAM = 0x02000000;
@@ -13,11 +14,11 @@ export const ADDR_HEADER_END = 0x000018;
 
 // Index by internal CRC *as a string*
 // This was made to be interoperable with the OSCR database but this is silly
-// TODO redo as json
-const cartDatabase = {};
-for (let [name, product, mbit, fullCrc, internalCrc] of LoopyCsvText.split("\n").filter(x => !x.startsWith('#') && x.trim().length > 0).map(line => line.split(',').map(s => s.trim()))) {
-    cartDatabase[internalCrc.toLowerCase()] = {name, product, mbit, fullCrc, internalCrc};
-}
+// const cartDatabase = {};
+// for (let [name, product, mbit, fullCrc, internalCrc] of LoopyCsvText.split("\n").filter(x => !x.startsWith('#') && x.trim().length > 0).map(line => line.split(',').map(s => s.trim()))) {
+//     cartDatabase[internalCrc.toLowerCase()] = {name, product, mbit, fullCrc, internalCrc};
+//     console.log(JSON.stringify(cartDatabase));
+// }
 
 function getHeaderUint32(buffer, addr, littleEndian = false) {
     return new DataView(buffer, addr, 4).getUint32(0, littleEndian);
@@ -29,10 +30,12 @@ export function getSramSize(buffer) {
     return (getHeaderUint32(buffer, ADDR_SRAM_END) + 1 - sramStart);
 }
 
+/** @return {number} */
 export function getRomSize(buffer) {
     return (getHeaderUint32(buffer, ADDR_ROM_END) + 2 - OFFSET_ROM);
 }
 
+/** @return {number} */
 export function getChecksum(buffer) {
     return getHeaderUint32(buffer, ADDR_CHECKSUM);
 }

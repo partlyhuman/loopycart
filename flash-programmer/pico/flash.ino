@@ -130,7 +130,7 @@ bool flashStatusCheck(uint32_t addr = 0, bool clearIfError = true) {
 void flashEraseBank(int bank) {
   int32_t bankAddress = bank ? FLASH_BANK_SIZE : 0;
   len = sprintf(S, "Erase bank %d\r", bank);
-  echo_all(S, len);
+  echo_all();
 
   delayMicroseconds(100);
   flashCommand(bankAddress, 0x70);
@@ -183,13 +183,13 @@ void flashEraseAll() {
   flashEraseBank(0);
   flashEraseBank(1);
   len = sprintf(S, "Erased in %0.2fs\r\n", (millis() - stopwatch) / 1000.0);
-  echo_all(S, len);
+  echo_all();
 }
 
 bool flashEraseBlock(uint32_t startAddr) {
   //startAddr = startAddr & ~(FLASH_BLOCK_SIZE - 1);
   // len = sprintf(S, "Erase block %06xh-%06xh\r\n", startAddr, startAddr + FLASH_BLOCK_SIZE - 1);
-  // echo_all(S, len);
+  // echo_all();
 
   flashCommand(startAddr, 0x20);
   flashCommand(startAddr, 0xd0);
@@ -240,7 +240,7 @@ void flashChipId() {
   delay(100);
 
   len = sprintf(S, "Manufacturer=%x Device=%x\r", manufacturer, device);
-  echo_all(S, len);
+  echo_all();
 }
 
 void flashReadStatus() {
@@ -282,15 +282,13 @@ void flashInspect(uint32_t starting, uint32_t upto) {
 
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     if (addr % 0x10 == 0) {
-      echo_all("\r", 1);
-      len = sprintf(S, "%06xh\t\t", addr);
-      echo_all(S, len);
+      len = sprintf(S, "\r%06xh\t\t", addr);
+      echo_all();
     }
     len = sprintf(S, "%04x\t", flashReadWord(addr));
-    echo_all(S, len);
+    echo_all();
   }
 
-  echo_all("\r\n\r\n", 4);
   busIdle();
 }
 
@@ -317,7 +315,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
   if ((bufLen % 2) == 1) {
     len = sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
-    echo_all(S, len);
+    echo_all();
   }
 
   // echo progress at fixed intervals
@@ -327,7 +325,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
       len = sprintf(S, "%S%d retries ", retries);
       retries = 0;
     }
-    echo_all(S, len);
+    echo_all();
   }
 
 #if OPT_MULTIBYTE
@@ -359,7 +357,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
       atBoundary = true;
       bytesToWrite = MIN(bankBoundary - addr, MAX_MULTIBYTE_WRITE);
       len = sprintf(S, "\r\nFinal write into bank 0 writing %d bytes from %x to %x\r\n", bytesToWrite, addr, addr + bytesToWrite);
-      echo_all(S, len);
+      echo_all();
     }
     int wordsToWrite = bytesToWrite / 2;
 
@@ -374,7 +372,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
       } else {
         if (++retries > 1000) {
           len = sprintf(S, "\r\nTIMEOUT @ %06x\r\n", addr);
-          echo_all(S, len);
+          echo_all();
           ledColor(0xFF0000);
           HALT;
         }
@@ -386,15 +384,15 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
       // for bigger errors, have a bigger delay before retry
       if (SR(1) == SR(4) == 1) {
         len = sprintf(S, "Block lock error @ %06x\r\n", addr);
-        echo_all(S, len);
+        echo_all();
       }
       if (SR(3) == SR(4) == 1) {
         len = sprintf(S, "Undervoltage error @ %06x\r\n", addr);
-        echo_all(S, len);
+        echo_all();
       }
       if (SR(4) == 1 || SR(5) == 1) {
         len = sprintf(S, "Unable to multibyte write @ %06x\r\n", addr);
-        echo_all(S, len);
+        echo_all();
       }
       delay(10);
     } while (!SR(7));
@@ -446,7 +444,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     flashCommand(0, CMD_RESET);
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
-    echo_all(S, len);
+    echo_all();
 
     busIdle();
     return false;
@@ -472,7 +470,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     flashCommand(0, CMD_RESET);
 
     len = sprintf(S, "\r\nWrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
-    echo_all(S, len);
+    echo_all();
     busIdle();
 
     ledColor(0);

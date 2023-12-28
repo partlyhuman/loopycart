@@ -1,13 +1,72 @@
-export default `
-Anime Land,XK-401,16,3fd9713b,98a0597d
-HARIHARI Seal Paradise,XK-402,16,b82ac7f3,7cb100b3
-Dream Change - Kogane-chan no Fashion Party,XK-403,16,0fb0a794,f6d41645
-Nigaoe Artist,XK-404,16,ef1b33f3,2046476f
-Chakrakun no Omajinai Paradise,XK-405,16,955c56ea,a5341f72
-Wanwan Aijou Monogatari,XK-501,16,10c5f568,d90fe762
-Pasocom Collection,XK-502,16,fe3be881,f294f931
-Little Romance,XK-503,24,550616f0,6a410bb2
-Loopy Town no Oheya ga Hoshii!,XK-504,24,352b4ae6,8373e9dd
-Lupiton no Wonder Palette,XK-701,16,f4662e66,6e00ce71
-Chakrakun no Omajinai Paradise,XK-405,16,955c56ea,a5341f72
-`;
+export default {
+    "98a0597d": {
+        "name": "Anime Land",
+        "product": "XK-401",
+        "mbit": "16",
+        "fullCrc": "3fd9713b",
+        "internalCrc": "98a0597d"
+    },
+    "7cb100b3": {
+        "name": "HARIHARI Seal Paradise",
+        "product": "XK-402",
+        "mbit": "16",
+        "fullCrc": "b82ac7f3",
+        "internalCrc": "7cb100b3"
+    },
+    "f6d41645": {
+        "name": "Dream Change - Kogane-chan no Fashion Party",
+        "product": "XK-403",
+        "mbit": "16",
+        "fullCrc": "0fb0a794",
+        "internalCrc": "f6d41645"
+    },
+    "2046476f": {
+        "name": "Nigaoe Artist",
+        "product": "XK-404",
+        "mbit": "16",
+        "fullCrc": "ef1b33f3",
+        "internalCrc": "2046476f"
+    },
+    "a5341f72": {
+        "name": "Chakrakun no Omajinai Paradise",
+        "product": "XK-405",
+        "mbit": "16",
+        "fullCrc": "955c56ea",
+        "internalCrc": "a5341f72"
+    },
+    "d90fe762": {
+        "name": "Wanwan Aijou Monogatari",
+        "product": "XK-501",
+        "mbit": "16",
+        "fullCrc": "10c5f568",
+        "internalCrc": "d90fe762"
+    },
+    "f294f931": {
+        "name": "Pasocom Collection",
+        "product": "XK-502",
+        "mbit": "16",
+        "fullCrc": "fe3be881",
+        "internalCrc": "f294f931"
+    },
+    "6a410bb2": {
+        "name": "Little Romance",
+        "product": "XK-503",
+        "mbit": "24",
+        "fullCrc": "550616f0",
+        "internalCrc": "6a410bb2"
+    },
+    "8373e9dd": {
+        "name": "Loopy Town no Oheya ga Hoshii!",
+        "product": "XK-504",
+        "mbit": "24",
+        "fullCrc": "352b4ae6",
+        "internalCrc": "8373e9dd"
+    },
+    "6e00ce71": {
+        "name": "Lupiton no Wonder Palette",
+        "product": "XK-701",
+        "mbit": "16",
+        "fullCrc": "f4662e66",
+        "internalCrc": "6e00ce71"
+    }
+};

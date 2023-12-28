@@ -38,7 +38,7 @@ MCP23S17 mcpAddr0 = MCP23S17(6, MCP_NO_RESET_PIN, 0b0100001);  //Address IO, A0-
 MCP23S17 mcpAddr1 = MCP23S17(7, MCP_NO_RESET_PIN, 0b0100010);  //Address and control IO, A16-A21, OE, RAMCE, RAMWE, ROMCE, ROMWE, RESET, Address 0x2
 
 // sprintf buffer
-char S[128];
+char S[USB_BUFSIZE];
 int len;
 // timing operations
 unsigned long stopwatch;
@@ -158,27 +158,30 @@ inline void writeByte(uint32_t addr, uint8_t byte) {
   mcpData.setPort(byte, A);
 }
 
-void echo_all(const char *buf, uint32_t count = 0) {
-  if (count == 0) {
-    count = strlen(buf);
+// Ensures strings are sent modulo the USB buffer size
+// Pass no parameters to use the shared string buffer S (after sprintf for example)
+void echo_all(const char *buf = NULL) {
+  if (!usb_web.connected()) return;
+
+  if (buf == NULL) {
+    buf = S;
+    // S is already the correct size
+  } else {
+    // A string is provided, this will pad it to buffer size and fill with NUL
+    strncpy(S, buf, USB_BUFSIZE);
   }
-  if (usb_web.connected()) {
-    usb_web.write((uint8_t *)buf, count);
-    usb_web.flush();
-  }
+
+  // Just in case it was too big
+  S[USB_BUFSIZE-1] = '\0';
+  usb_web.write(S, USB_BUFSIZE);
+  usb_web.flush();
+
   // if (Serial) {
   //   Serial.write(buf);
-  //   // for (uint32_t i = 0; i < count; i++) {
-  //   //   Serial.write(buf[i]);
-  //   //   if (buf[i] == '\r') Serial.write('\n');
-  //   // }
   //   Serial.flush();
   // }
 }
 
-// Ensures the client doesn't leave stuff in the buffer waiting to parse. Really shouldn't have to do this
-// TODO fix on client, don't leave stuff unparsed in buffer
-const char *OKSTR = "!OK\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r";
 void echo_ok() {
-  echo_all(OKSTR);
+  echo_all("!OK\r");
 }

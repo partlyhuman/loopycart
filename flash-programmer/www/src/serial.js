@@ -2,7 +2,9 @@
 // Some modernizations by @partlyhuman
 
 const USB_VENDOR_ID = 0x239a; // Adafruit USB library, or make a vanity one for Floopy perhaps
+const BUFSIZE = 64;
 const textEncoder = new TextEncoder();
+const outBuffer = new Uint8Array(BUFSIZE);
 
 export class Serial {
     static async getPorts() {
@@ -40,7 +42,7 @@ export class Port {
 
     async connect() {
         const readLoop = () => {
-            this._device.transferIn(this.endpointIn, 64).then(result => {
+            this._device.transferIn(this.endpointIn, BUFSIZE).then(result => {
                 this.onReceive(result.data);
                 readLoop();
             }, error => {
@@ -98,7 +100,9 @@ export class Port {
 
     async send(data) {
         if (typeof data === 'string') {
-            data = textEncoder.encode(data);
+            // Ensure padded to buffer size
+            textEncoder.encodeInto(data, outBuffer);
+            data = outBuffer;
         }
         return await this._device.transferOut(this.endpointOut, data);
     }
