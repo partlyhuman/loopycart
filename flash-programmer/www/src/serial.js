@@ -100,6 +100,7 @@ export class Port {
 
     async send(data) {
         if (typeof data === 'string') {
+            // console.log(`>${data}`);
             // Ensure padded to buffer size
             textEncoder.encodeInto(data, outBuffer);
             data = outBuffer;

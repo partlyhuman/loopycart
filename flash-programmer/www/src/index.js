@@ -1,16 +1,5 @@
 import {Serial} from './serial';
-import {
-    ADDR_HEADER_END,
-    getCartDataFromHeader,
-    getCartHeaderMagic,
-    HEADER_BLANK,
-    HEADER_LITTLE_ENDIAN,
-    HEADER_OK,
-    HEADER_UNRECOGNIZED,
-    lookupCartDatabase,
-    swapBytes,
-    trimEnd
-} from './cart';
+import {ADDR_HEADER_END, getCartDataFromHeader, lookupCartDatabase, parseRom, trimEnd} from './cart';
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
@@ -52,8 +41,7 @@ function roundSize(s) {
     return Math.ceil(s / SERIAL_BUFFER_SIZE) * SERIAL_BUFFER_SIZE;
 }
 
-// Pads a command to the serial buffer size (64 bytes) with extra \rs
-// Do this to send a command that expects data to follow, so the command is predictable size
+// The default port.onReceive handler. Parses text and puts it in the console.
 function serialEcho(buffer) {
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
     const data = (buffer instanceof Uint8Array) ? buffer : new Uint8Array(buffer);
@@ -62,7 +50,7 @@ function serialEcho(buffer) {
     const text = textDecoder.decode(lastByte < 0 ? data : data.subarray(0, lastByte));
     if (text.match(/^!OK\b/m)) {
         setProgress(false);
-        if (currentOperationResolver) {
+        if (typeof currentOperationResolver === 'function') {
             currentOperationResolver();
             currentOperationResolver = null;
         }
@@ -187,31 +175,6 @@ Serial.getPorts().then(ports => {
         connect().then();
     }
 });
-
-function parseRom(buffer) {
-    switch (getCartHeaderMagic(buffer)) {
-        case HEADER_OK:
-            console.log("Header ok!");
-            break;
-        case HEADER_LITTLE_ENDIAN:
-            console.warn("Using a little endian dump, please update your ROMs to big endian");
-            swapBytes(buffer);
-            console.assert(getCartHeaderMagic(buffer) === HEADER_OK, "Something went wrong with the swap");
-            break;
-        case HEADER_UNRECOGNIZED:
-        case HEADER_BLANK:
-            throw new Error('Does not appear to be a loopy ROM');
-        default:
-            throw new Error("Unrecognized header");
-    }
-
-    const header = getCartDataFromHeader(buffer);
-    return {
-        ...lookupCartDatabase(header.checksum),
-        header
-    };
-}
-
 
 async function downloadAndParseCartHeader() {
     const size = roundSize(ADDR_HEADER_END);

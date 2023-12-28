@@ -212,10 +212,8 @@ void loop_programming() {
 
   else if (buf[0] == 'N') {
     if (sscanf((char *)buf, "N%[^\r]\r", S) && strlen(S) > 0) {
-      echo_all("Setting nickname...");
       setNickname(S);
     } else {
-      echo_all("Deleting nickname...");
       setNickname(NULL);
     }
   }

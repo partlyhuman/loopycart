@@ -1,6 +1,5 @@
 import cartDatabase from './data/cart_database';
 // import LoopyCsvText from './data/cart_database_csv';
-import {sprintf} from 'sprintf-js';
 
 export const OFFSET_ROM = 0x0E000000;
 export const OFFSET_SRAM = 0x02000000;
@@ -49,13 +48,6 @@ export function lookupCartDatabase(checksum) {
     return cartDatabase[checksum];
 }
 
-export function getCartDataFromDatabase(buffer) {
-    if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
-    const internalCrcString = sprintf("%08x", getChecksum(buffer));
-    console.log("Cart ID", internalCrcString);
-    return cartDatabase[internalCrcString];
-}
-
 export function getCartDataFromHeader(buffer) {
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
     return {
@@ -69,8 +61,6 @@ export const HEADER_UNRECOGNIZED = 0;
 export const HEADER_OK = 1;
 export const HEADER_LITTLE_ENDIAN = 2;
 export const HEADER_BLANK = 3;
-export const UINT32_BLANK = 0xffffffff;
-
 export function getCartHeaderMagic(buffer) {
     if (ArrayBuffer.isView(buffer)) buffer = buffer.buffer;
     const MAGIC = [0x0e00, 0x0080];
@@ -85,6 +75,30 @@ export function getCartHeaderMagic(buffer) {
     } else {
         return HEADER_UNRECOGNIZED;
     }
+}
+
+export function parseRom(buffer) {
+    switch (getCartHeaderMagic(buffer)) {
+        case HEADER_OK:
+            console.log("Header ok!");
+            break;
+        case HEADER_LITTLE_ENDIAN:
+            console.warn("Using a little endian dump, please update your ROMs to big endian");
+            swapBytes(buffer);
+            console.assert(getCartHeaderMagic(buffer) === HEADER_OK, "Something went wrong with the swap");
+            break;
+        case HEADER_UNRECOGNIZED:
+        case HEADER_BLANK:
+            throw new Error('Does not appear to be a loopy ROM');
+        default:
+            throw new Error("Unrecognized header");
+    }
+
+    const header = getCartDataFromHeader(buffer);
+    return {
+        ...lookupCartDatabase(header.checksum),
+        header
+    };
 }
 
 export function swapBytes(buffer) {
