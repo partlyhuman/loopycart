@@ -3,7 +3,7 @@ import {ADDR_HEADER_END, getCartDataFromHeader, lookupCartDatabase, parseRom, tr
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = '1914eb0';
+const FW_CURRENT = '84c7776';
 
 const SERIAL_BUFFER_SIZE = 64;
 export const SRAM_SIZE = 1 << 17;
