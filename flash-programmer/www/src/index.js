@@ -221,6 +221,17 @@ export async function programFlash(buffer) {
     await uploadChunked(buffer);
     // Important to allow confirmation text to come from Floopy over serial and be parsed
     await sleep(250);
+
+}
+
+export async function programSram(buffer) {
+    if (buffer.byteLength !== SRAM_SIZE) {
+        throw new Error(`Expected buffer of SRAM size ${SRAM_SIZE}`);
+    }
+    await port.send(`Ps${buffer.byteLength}\r`);
+    await uploadChunked(buffer);
+    // Important to allow confirmation text to come from Floopy over serial and be parsed
+    await sleep(250);
 }
 
 async function uploadChunked(buffer) {
@@ -311,8 +322,8 @@ async function simpleFlash(/** @type File */ file) {
 }
 
 const $drop = $('.drop');
-window?.addEventListener('dragover', e => e.preventDefault());
-window?.addEventListener('drop', e => e.preventDefault());
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
 $drop?.addEventListener('drop', event => {
     event.preventDefault();
     event.target.classList.remove('over');
@@ -340,7 +351,7 @@ $advancedMode?.addEventListener('change', event => {
 
 //------------------- ADVANCED UI ----------------
 
-$('.flash-upload')?.addEventListener('change', async ({target: {files}}) => {
+$('input.flash-upload')?.addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -360,7 +371,7 @@ $('.flash-upload')?.addEventListener('change', async ({target: {files}}) => {
     await programFlash(buffer);
 });
 
-$('.flash-upload-simple')?.addEventListener('change', ({target: {files}}) => {
+$('input.flash-upload-simple')?.addEventListener('change', ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -368,7 +379,7 @@ $('.flash-upload-simple')?.addEventListener('change', ({target: {files}}) => {
     simpleFlash(files[0]).then();
 });
 
-$('.sram-upload')?.addEventListener('change', async ({target: {files}}) => {
+$('input.sram-upload')?.addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -387,7 +398,7 @@ $('.sram-upload')?.addEventListener('change', async ({target: {files}}) => {
 });
 
 
-$('.flash-inspect')?.addEventListener('click', async () => {
+$('button.flash-inspect')?.addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     console.log(header);
     log(`Parsed header: ${JSON.stringify(header)}\r\n`);
@@ -400,25 +411,25 @@ $('.flash-inspect')?.addEventListener('click', async () => {
     await port.send('I\r');
 });
 
-$('.sram-backup')?.addEventListener('click', async () => {
+$('button.sram-backup')?.addEventListener('click', async () => {
     await port.send('Sr\r');
 });
 
-$('.sram-restore')?.addEventListener('click', async () => {
+$('button.sram-restore')?.addEventListener('click', async () => {
     await port.send('Sw\r');
 });
 
-$('.sram-format-fs')?.addEventListener('click', async () => {
+$('button.sram-format-fs')?.addEventListener('click', async () => {
     await port.send('Sf\r');
 });
 
-$('.flash-download')?.addEventListener('click', async () => {
+$('button.flash-download')?.addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     console.log(`downloading ${header.romSize} bytes`);
     saveBufferToFile(await download(header.romSize, `D${header.romSize}\r`), 'loopy-rom.bin');
 });
 
-$('.sram-download')?.addEventListener('click', async () => {
+$('button.sram-download')?.addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     const cart = lookupCartDatabase(header.checksum);
 
@@ -435,15 +446,15 @@ $('.sram-download')?.addEventListener('click', async () => {
     }
 });
 
-$('.flash-erase')?.addEventListener('click', async () => {
+$('button.flash-erase')?.addEventListener('click', async () => {
     setProgress(true);
     await port.send('E\r');
 });
-$('.flash-erase-one')?.addEventListener('click', async () => {
+$('button.flash-erase-one')?.addEventListener('click', async () => {
     setProgress(true);
     await port.send('E0\r');
 });
-$('.sram-erase')?.addEventListener('click', async () => {
+$('button.sram-erase')?.addEventListener('click', async () => {
     setProgress(true);
     await port.send('Es\r');
 });
@@ -453,6 +464,15 @@ $('.device-nickname button')?.addEventListener('click', async () => {
     await port.send(`N${nick}\r`);
 });
 
-$('.cls')?.addEventListener('click', () => {
+$('form.manual-command')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const $input = $('.manual-command input');
+    const cmd = `${$input.value.toUpperCase().trim()}\r`;
+    $input.value = '';
+    await port.send(cmd);
+    return false;
+});
+
+$('button.cls')?.addEventListener('click', () => {
     $('#receiver_lines').innerHTML = '';
 });

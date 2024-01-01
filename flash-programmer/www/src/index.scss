@@ -82,6 +82,13 @@ button#connect {
   margin-bottom: 20px;
 }
 
+.qa .row {
+  height: 5em;
+  * {
+    flex: 1;
+  }
+}
+
 #progress {
   //display: inline;
   //width: 98%;

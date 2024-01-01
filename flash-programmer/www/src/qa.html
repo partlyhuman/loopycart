@@ -18,18 +18,25 @@
         <div id="progress-text" class="progress-text"></div>
     </div>
     <div class="qa" style="border: 1px solid hotpink; padding: 1em;">
-        <h2 style="text-align: center; margin: 0">QA</h2>
+        <h1 style="text-align: center; margin: 0">QA</h1>
         <div style="padding-bottom: 1em;">
             <label>Test Flash<input class="qa-flash" type="file"></label><br>
             <label>Test SRAM<input class="qa-sram" type="file"></label>
         </div>
-        <div class="controls qa">
+        <div class="controls row">
             <button class="qa-blank button">Blank?</button>
-            <button class="qa-write-quick button">Quick Random Write</button>
+            <button class="qa-quick-flash button">Quick Flash Test</button>
+            <button class="qa-sram button">Quick SRAM Test</button>
+        </div>
+        <div class="controls row">
+            <button class="qa-program-both button">Program Both</button>
             <button class="qa-verify-flash button">Verify Flash</button>
             <button class="qa-verify-sram button">Verify SRAM</button>
+        </div>
+        <div class="controls row">
             <button class="qa-wipe button">Full Wipe</button>
         </div>
+
     </div>
     <div class="controls rom">
         <h2>ROM</h2>
