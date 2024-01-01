@@ -21,7 +21,6 @@ void loop_programming() {
       idleSince = millis();
     } else if (millis() - idleSince > ABORT_AFTER_MS) {
       if (isProgrammingFlash || isProgrammingSram) {
-        ledColor(0x303000);  // yellow
         isProgrammingFlash = false;
         isProgrammingSram = false;
         echo_all("!ERROR Aborted programming after no data\r\n");
@@ -33,16 +32,14 @@ void loop_programming() {
 
   size_t bufLen = usb_web.read(buf, USB_BUFSIZE);
 
-  if (bufLen == 0) {
-    return;
-  }
-
   if (isProgrammingFlash) {
     isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, totalBytes);
     if (!isProgrammingFlash) ledColor(0);
+    return;
   } else if (isProgrammingSram) {
     isProgrammingSram = sramWriteBuffer(buf, bufLen, addr, totalBytes);
     if (!isProgrammingSram) ledColor(0);
+    return;
   }
 
   else if (buf[0] == 'E') {
@@ -65,12 +62,12 @@ void loop_programming() {
       flashEraseBank(1);
       flashCommand(0, CMD_RESET);
       echo_ok();
-    } else if (sscanf((char *)buf, "E%d\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
+    } else if (sscanf((char *)buf, "E%ld\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
       stopwatch = millis();
-      len = sprintf(S, "Erasing %d bytes of flash up to %06xh\r\n", totalBytes, totalBytes);
+      sprintf(S, "Erasing %d bytes of flash up to %06xh\r\n", totalBytes, totalBytes);
       echo_all();
       for (addr = 0; addr < totalBytes; addr += FLASH_BLOCK_SIZE) {
-        len = sprintf(S, "%06xh ", addr);
+        sprintf(S, "%06xh ", addr);
         echo_all();
         if (!flashEraseBlock(addr)) {
           echo_all("\r\n!ERR ABORTING ERASE\r\n");
@@ -80,7 +77,7 @@ void loop_programming() {
       // // NOTE: Erasing by bank isn't faster than erasing by block, so this adds complexity but saves no time
       // addr = 0;
       // while (addr < totalBytes) {
-      //   len = sprintf(S, "%06xh ", addr);
+      //   sprintf(S, "%06xh ", addr);
       //   echo_all();
       //   if (addr == 0 && totalBytes >= FLASH_BANK_SIZE) {
       //     flashEraseBank(0);
@@ -95,7 +92,7 @@ void loop_programming() {
       //     }
       //   }
       // }
-      len = sprintf(S, "\r\nErased %d bytes in %0.2f sec using block erasing\r\n", addr, (millis() - stopwatch) / 1000.0);
+      sprintf(S, "\r\nErased %d bytes in %0.2f sec using block erasing\r\n", addr, (millis() - stopwatch) / 1000.0);
       echo_all();
       echo_ok();
     }
@@ -106,9 +103,9 @@ void loop_programming() {
     // INSPECT COMMAND
     // flashId();
     echo_all("\r\n---CART-ID---\r\n");
-    len = sprintf(S, "Cart header %s\r\n", flashCartHeaderCheck() ? "OK" : "NOT OK");
+    sprintf(S, "Cart header %s\r\n", flashCartHeaderCheck() ? "OK" : "NOT OK");
     echo_all();
-    len = sprintf(S, "Cart ID %08x\r\n", flashCartHeaderId());
+    sprintf(S, "Cart ID %08x\r\n", flashCartHeaderId());
     echo_all();
     echo_all("\r\n---FLASH-lower---\r\n");
     flashInspect(0x000000, 0x000100);
@@ -132,7 +129,7 @@ void loop_programming() {
     // LittleFS.info64(info);
     FSInfo info;
     LittleFS.info(info);
-    len = sprintf(S, "%d/%d bytes used, %0.0f%% full\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes);
+    sprintf(S, "%d/%d bytes used, %0.0f%% full\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes);
     echo_all();
 
     busIdle();
@@ -140,30 +137,43 @@ void loop_programming() {
 
   else if (buf[0] == 'D') {
     // DUMP COMMAND
-    ledColor(BLUE);
-    // followed by expected # of bytes
-    if (sscanf((char *)buf, "D%d\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
-      flashDump(0, totalBytes);
+    if (2 == sscanf((char *)buf, "D%ld/%ld\r", &addr, &totalBytes)) {
+      // followed by start address and total # of bytes
+      if (addr > 0 && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
+        ledColor(BLUE);
+        flashDump(addr, addr + totalBytes);
+        ledColor(0);
+      } else {
+        ledColor(RED);
+      }
+    } else if (1 == sscanf((char *)buf, "D%ld\r", &totalBytes)) {
+      // followed by expected # of bytes
+      if (totalBytes > 0 && totalBytes <= FLASH_SIZE) {
+        ledColor(BLUE);
+        flashDump(0, totalBytes);
+        ledColor(0);
+      } else {
+        ledColor(RED);
+      }
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramDump();
     }
-    ledColor(0);
   }
 
   else if (buf[0] == 'P') {
     // PROGRAM COMMAND
-    if (sscanf((char *)buf, "P%d\r", &totalBytes)) {
+    if (1 == sscanf((char *)buf, "P%ld\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
       // program flash followed by expected # of bytes
-      len = sprintf(S, "Programming %d bytes to flash\r", totalBytes);
+      sprintf(S, "Programming %d bytes to flash\r", totalBytes);
       echo_all();
       isProgrammingFlash = true;
       addr = 0;
       stopwatch = millis();
       busIdle();
       ledColor(BLUE);
-    } else if (sscanf((char *)buf, "Ps%d\r", &totalBytes)) {
+    } else if (1 == sscanf((char *)buf, "Ps%ld\r", &totalBytes) && totalBytes > 0 && totalBytes <= SRAM_SIZE) {
       // program SRAM followed by expected # of bytes
-      len = sprintf(S, "Programming %d bytes to SRAM\r", totalBytes);
+      sprintf(S, "Programming %d bytes to SRAM\r", totalBytes);
       echo_all();
       isProgrammingSram = true;
       addr = 0;
@@ -171,6 +181,8 @@ void loop_programming() {
       databusWriteMode();
       sramSelect();
       ledColor(BLUE);
+    } else {
+      ledColor(RED);
     }
   }
 
@@ -189,14 +201,13 @@ void loop_programming() {
     if (buf[1] == 'r' && buf[2] == '\r') {
       // backup SRAM to file
       uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
-      len = sprintf(S, "Backing up first %dkb of SRAM to %s\r\n", sramSize / 1024, filename);
+      sprintf(S, "Backing up first %dkb of SRAM to %s\r\n", sramSize / 1024, filename);
       echo_all();
-
       sramSaveFile(filename, sramSize);
       echo_ok();
     } else if (buf[1] == 'w' && buf[2] == '\r') {
       // restore SRAM from file
-      len = sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
+      sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
       echo_all();
       sramLoadFile(filename) || sramErase();
       echo_ok();
@@ -237,16 +248,16 @@ void onUsbConnect(bool connected) {
     usb_web.write((uint8_t *)connectStr, USB_BUFSIZE);
     usb_web.flush();
 
-    if (len > 0) {
-      echo_all("!ERR boot log errors found:\r\n");
+    if (bootErrors > 0) {
       echo_all();
+      echo_all("\r\n!ERR boot log errors found above\r\n");
     }
   }
 }
 
 inline void bootError(const char *str, uint32_t ledErrorColor = 0x800000) {
   bootErrors++;
-  len = sprintf(S, "%s %s", S, str);
+  sprintf(S, "%s %s", S, str);
   ledColor(ledErrorColor);
 }
 
@@ -287,18 +298,18 @@ void setup_programming() {
   ioWriteMode(&mcpAddr1);
   busIdle();
 
-  // Backup SRAM contents whenever Pico is booted up
-  if (!bootErrors && flashCartHeaderCheck()) {
-    uint32_t cartId = flashCartHeaderId();
-    if (cartId != 0 && cartId != 0xffffffff) {
-      ledColor(BLUE);
-      const size_t SAVE_FILENAME_LEN = 13;
-      char filename[SAVE_FILENAME_LEN];
-      sprintf(filename, "%08x.sav", cartId);
-      sramSaveFile(filename, min(flashCartHeaderSramSize(), SRAM_SIZE));
-      ledColor(0);
-    }
-  }
+  // DON'T Backup SRAM contents whenever Pico is booted up - this would ruin things when changing batteries
+  // if (!bootErrors && flashCartHeaderCheck()) {
+  //   uint32_t cartId = flashCartHeaderId();
+  //   if (cartId != 0 && cartId != 0xffffffff) {
+  //     ledColor(BLUE);
+  //     const size_t SAVE_FILENAME_LEN = 13;
+  //     char filename[SAVE_FILENAME_LEN];
+  //     sprintf(filename, "%08x.sav", cartId);
+  //     sramSaveFile(filename, min(flashCartHeaderSramSize(), SRAM_SIZE));
+  //     ledColor(0);
+  //   }
+  // }
 
   // Clear flash lock bits preemptively whenever Pico is booted up
   if (!bootErrors) {
@@ -312,8 +323,12 @@ void setup_programming() {
 
   if (!bootErrors) {
     // Give a little flash to indicate boot and connection ok, otherwise leave error status LED unchanged
-    ledColor(0xffffff);
-    delay(100);
+    ledColor(0xff0000);
+    delay(50);
+    ledColor(0x00ff00);
+    delay(50);
+    ledColor(0x0000ff);
+    delay(50);
     ledColor(0);
   }
 }

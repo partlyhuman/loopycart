@@ -6,7 +6,7 @@ import {ADDR_HEADER_END, getCartDataFromHeader, lookupCartDatabase, parseRom, tr
 const FW_CURRENT = '1914eb0';
 
 const SERIAL_BUFFER_SIZE = 64;
-const SRAM_SIZE = 1 << 17;
+export const SRAM_SIZE = 1 << 17;
 const UPLOAD_CHUNK_SIZE = 1024;
 const TRUNCATE_DUMPED_SRAM = true;
 
@@ -14,7 +14,7 @@ const textDecoder = new TextDecoder();
 /** @type Port */
 let port;
 
-const $ = document.querySelector.bind(document);
+export const $ = document.querySelector.bind(document);
 const $body = $('body');
 const $connectButton = $('#connect');
 const $statusDisplay = $('#status');
@@ -55,7 +55,7 @@ function serialEcho(buffer) {
             currentOperationResolver = null;
         }
     }
-    appendLines(text);
+    log(text);
 }
 
 function addLine(text) {
@@ -69,13 +69,16 @@ function addLine(text) {
 
 let currentReceiverLine;
 
-function appendLines(text) {
+export function log(text, copyToConsole = false) {
     const lines = text.split('\r');
     if (currentReceiverLine) {
         currentReceiverLine.innerHTML = currentReceiverLine.innerHTML + lines.shift();
     }
     for (const line of lines) {
         currentReceiverLine = addLine(line);
+    }
+    if (copyToConsole) {
+        console.log(text.replace('\r', '').trim());
     }
     $lines.scrollTo(0, $lines.scrollHeight, {smooth: true});
 }
@@ -113,7 +116,7 @@ function setStepInfo(str) {
 async function showError(str) {
     // TODO this should display a dialog box and block until confirmed
     console.error(str);
-    appendLines("ERROR: " + str + "\r\n");
+    log("ERROR: " + str + "\r\n");
     await sleep(500);
 }
 
@@ -153,7 +156,7 @@ async function disconnect() {
     port = null;
 }
 
-$connectButton.addEventListener('click', async () => {
+$connectButton?.addEventListener('click', async () => {
     if (port) {
         await disconnect();
     } else {
@@ -273,10 +276,10 @@ async function simpleFlash(/** @type File */ file) {
         const currentRomHeader = await downloadAndParseCartHeader();
         const isDifferentGame = currentRomHeader.checksum !== newGameHeader.checksum;
 
-        // If different game, backup SRAM -- no longer needed, now we backup SRAM when plugged in
-        // if (isDifferentGame && currentRomHeader.checksum !== UINT32_BLANK) {
-        //     await commandWithProgress('Sr\r', 'Backing up current save');
-        // }
+        // If different game, backup SRAM
+        if (isDifferentGame && currentRomHeader.checksum !== 0xffffffff) {
+            await commandWithProgress('Sr\r', 'Backing up current save');
+        }
 
         // Erase only what's needed - great for small homebrew
         await commandWithProgress(`E${buffer.byteLength}\r`, `Erasing flash`);
@@ -308,24 +311,24 @@ async function simpleFlash(/** @type File */ file) {
 }
 
 const $drop = $('.drop');
-window.addEventListener('dragover', e => e.preventDefault());
-window.addEventListener('drop', e => e.preventDefault());
-$drop.addEventListener('drop', event => {
+window?.addEventListener('dragover', e => e.preventDefault());
+window?.addEventListener('drop', e => e.preventDefault());
+$drop?.addEventListener('drop', event => {
     event.preventDefault();
     event.target.classList.remove('over');
     simpleFlash(event.dataTransfer.files?.[0]).then();
 });
-$drop.addEventListener('click', () => $('.flash-upload-simple').click());
-$drop.addEventListener('dragover', (event) => event.target.classList.add('over'));
-$drop.addEventListener('dragleave', (event) => event.target.classList.remove('over'));
-$drop.addEventListener('dragend', (event) => event.target.classList.remove('over'));
+$drop?.addEventListener('click', () => $('.flash-upload-simple').click());
+$drop?.addEventListener('dragover', (event) => event.target.classList.add('over'));
+$drop?.addEventListener('dragleave', (event) => event.target.classList.remove('over'));
+$drop?.addEventListener('dragend', (event) => event.target.classList.remove('over'));
 
 const $advancedMode = $('#advanced-mode');
 if (localStorage.getItem('advanced') === 'true') {
     $body.classList.add('advanced');
     $advancedMode.checked = true;
 }
-$advancedMode.addEventListener('change', event => {
+$advancedMode?.addEventListener('change', event => {
     if (event.target.checked) {
         $body.classList.add('advanced');
         localStorage.setItem('advanced', 'true');
@@ -337,7 +340,7 @@ $advancedMode.addEventListener('change', event => {
 
 //------------------- ADVANCED UI ----------------
 
-$('.flash-upload').addEventListener('change', async ({target: {files}}) => {
+$('.flash-upload')?.addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -357,7 +360,7 @@ $('.flash-upload').addEventListener('change', async ({target: {files}}) => {
     await programFlash(buffer);
 });
 
-$('.flash-upload-simple').addEventListener('change', ({target: {files}}) => {
+$('.flash-upload-simple')?.addEventListener('change', ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -365,7 +368,7 @@ $('.flash-upload-simple').addEventListener('change', ({target: {files}}) => {
     simpleFlash(files[0]).then();
 });
 
-$('.sram-upload').addEventListener('change', async ({target: {files}}) => {
+$('.sram-upload')?.addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -384,38 +387,38 @@ $('.sram-upload').addEventListener('change', async ({target: {files}}) => {
 });
 
 
-$('.flash-inspect').addEventListener('click', async () => {
+$('.flash-inspect')?.addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     console.log(header);
-    appendLines(`Parsed header: ${JSON.stringify(header)}\r\n`);
+    log(`Parsed header: ${JSON.stringify(header)}\r\n`);
     const cart = lookupCartDatabase(header.checksum);
     if (cart) {
         console.log(cart);
-        appendLines(`Identified in database as: ${JSON.stringify(cart)}\r\n\r\n`);
+        log(`Identified in database as: ${JSON.stringify(cart)}\r\n\r\n`);
     }
 
     await port.send('I\r');
 });
 
-$('.sram-backup').addEventListener('click', async () => {
+$('.sram-backup')?.addEventListener('click', async () => {
     await port.send('Sr\r');
 });
 
-$('.sram-restore').addEventListener('click', async () => {
+$('.sram-restore')?.addEventListener('click', async () => {
     await port.send('Sw\r');
 });
 
-$('.sram-format-fs').addEventListener('click', async () => {
+$('.sram-format-fs')?.addEventListener('click', async () => {
     await port.send('Sf\r');
 });
 
-$('.flash-download').addEventListener('click', async () => {
+$('.flash-download')?.addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     console.log(`downloading ${header.romSize} bytes`);
     saveBufferToFile(await download(header.romSize, `D${header.romSize}\r`), 'loopy-rom.bin');
 });
 
-$('.sram-download').addEventListener('click', async () => {
+$('.sram-download')?.addEventListener('click', async () => {
     const header = await downloadAndParseCartHeader();
     const cart = lookupCartDatabase(header.checksum);
 
@@ -432,28 +435,24 @@ $('.sram-download').addEventListener('click', async () => {
     }
 });
 
-$('.flash-erase').addEventListener('click', async () => {
+$('.flash-erase')?.addEventListener('click', async () => {
     setProgress(true);
     await port.send('E\r');
 });
-$('.flash-erase-one').addEventListener('click', async () => {
+$('.flash-erase-one')?.addEventListener('click', async () => {
     setProgress(true);
     await port.send('E0\r');
 });
-$('.sram-erase').addEventListener('click', async () => {
+$('.sram-erase')?.addEventListener('click', async () => {
     setProgress(true);
     await port.send('Es\r');
 });
 
-$('.device-nickname button').addEventListener('click', async () => {
+$('.device-nickname button')?.addEventListener('click', async () => {
     const nick = $('.device-nickname input').value;
     await port.send(`N${nick}\r`);
 });
 
-$('.manual-command button').addEventListener('click', async () => {
-    await port.send(`${($('.manual-command input').value)}\r`);
-});
-
-$('.cls').addEventListener('click', () => {
+$('.cls')?.addEventListener('click', () => {
     $('#receiver_lines').innerHTML = '';
 });

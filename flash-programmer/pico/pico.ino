@@ -8,9 +8,7 @@
 #define HW_REVISION 8
 // The MCP23S17 is rated for 10MHz
 #define SPI_SPEED 10000000
-// TODO something bad is going on that flashing dies midway if this is not defined
 #define DEBUG_LED
-#define OPT_MULTIBYTE 1
 
 // Delays one clock cycle or 7ns | 133MhZ = 0.000000007518797sec = 7.518797ns
 #define NOP __asm__("nop\n\t")
@@ -39,7 +37,6 @@ MCP23S17 mcpAddr1 = MCP23S17(7, MCP_NO_RESET_PIN, 0b0100010);  //Address and con
 
 // sprintf buffer
 char S[USB_BUFSIZE];
-int len;
 // timing operations
 unsigned long stopwatch;
 
@@ -47,8 +44,9 @@ unsigned long stopwatch;
 uint16_t SRD;
 #define SR(n) bitRead(SRD, n)
 
+#define RED  0xFF0000
 #define BLUE 0x0000FF
-Adafruit_NeoPixel led(1, 16, NEO_RGB);
+Adafruit_NeoPixel led(1, 16, NEO_GRB);
 
 inline void ledColor(uint32_t c) {
   led.setPixelColor(0, c);
@@ -171,8 +169,6 @@ void echo_all(const char *buf = NULL) {
     strncpy(S, buf, USB_BUFSIZE);
   }
 
-  // Just in case it was too big
-  S[USB_BUFSIZE-1] = '\0';
   usb_web.write(S, USB_BUFSIZE);
   usb_web.flush();
 

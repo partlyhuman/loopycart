@@ -2,19 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Loopy programmer</title>
+    <title>Loopy QA Harness</title>
     <link rel="stylesheet" href="index.scss"/>
-
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
-    <link rel="manifest" href="assets/site.webmanifest">
 </head>
-<body>
+<body class="advanced">
 
 <main>
     <div class="connect-container">
-        <img src="assets/floopydrive.svg" alt="Floopy Drive!" height="180">
         <button id="connect" class="button black">Connect</button>
         <div class="row flex">
             <span id="status"></span>
@@ -23,7 +17,21 @@
         <progress id="progress" value="0" max="1"></progress>
         <div id="progress-text" class="progress-text"></div>
     </div>
-    <div class="controls rom advanced">
+    <div class="qa" style="border: 1px solid hotpink; padding: 1em;">
+        <h2 style="text-align: center; margin: 0">QA</h2>
+        <div style="padding-bottom: 1em;">
+            <label>Test Flash<input class="qa-flash" type="file"></label><br>
+            <label>Test SRAM<input class="qa-sram" type="file"></label>
+        </div>
+        <div class="controls qa">
+            <button class="qa-blank button">Blank?</button>
+            <button class="qa-write-quick button">Quick Random Write</button>
+            <button class="qa-verify-flash button">Verify Flash</button>
+            <button class="qa-verify-sram button">Verify SRAM</button>
+            <button class="qa-wipe button">Full Wipe</button>
+        </div>
+    </div>
+    <div class="controls rom">
         <h2>ROM</h2>
         <button class="flash-inspect button">Inspect</button>
         <button class="flash-download button">Dump</button>
@@ -31,7 +39,7 @@
         <button class="flash-erase button">Full Erase</button>
         <input class="flash-upload" type="file">
     </div>
-    <div class="controls sram advanced">
+    <div class="controls sram">
         <h2>SRAM</h2>
         <button class="sram-download button">Download</button>
         <button class="sram-erase button">Erase</button>
@@ -40,11 +48,18 @@
         <button class="sram-format-fs button">Format Backups</button>
         <input class="sram-upload" type="file">
     </div>
-    <div class="controls device advanced">
+    <div class="controls device hidden">
         <h2>DEVICE</h2>
         <label class="device-nickname"><input type="text" maxlength="48" placeholder="Your Name">
             <button>Set</button>
         </label>
+    </div>
+    <div class="controls manual">
+        <h2>MANUAL</h2>
+        <form class="manual-command">
+            <label><input type="text"></label>
+            <input type="submit" value="SEND">
+        </form>
     </div>
     <div class="dump-file-link"></div>
 
@@ -72,6 +87,7 @@
 
 
 <script type="module" src="index.js"></script>
+<script type="module" src="qa.js"></script>
 
 </body>
 </html>

@@ -129,7 +129,7 @@ bool flashStatusCheck(uint32_t addr = 0, bool clearIfError = true) {
 
 void flashEraseBank(int bank) {
   int32_t bankAddress = bank ? FLASH_BANK_SIZE : 0;
-  len = sprintf(S, "Erase bank %d\r", bank);
+  sprintf(S, "Erase bank %d\r", bank);
   echo_all();
 
   delayMicroseconds(100);
@@ -182,13 +182,13 @@ void flashEraseAll() {
   stopwatch = millis();
   flashEraseBank(0);
   flashEraseBank(1);
-  len = sprintf(S, "Erased in %0.2fs\r\n", (millis() - stopwatch) / 1000.0);
+  sprintf(S, "Erased in %0.2fs\r\n", (millis() - stopwatch) / 1000.0);
   echo_all();
 }
 
 bool flashEraseBlock(uint32_t startAddr) {
   //startAddr = startAddr & ~(FLASH_BLOCK_SIZE - 1);
-  // len = sprintf(S, "Erase block %06xh-%06xh\r\n", startAddr, startAddr + FLASH_BLOCK_SIZE - 1);
+  // sprintf(S, "Erase block %06xh-%06xh\r\n", startAddr, startAddr + FLASH_BLOCK_SIZE - 1);
   // echo_all();
 
   flashCommand(startAddr, 0x20);
@@ -239,7 +239,7 @@ void flashChipId() {
   flashCommand(0, CMD_RESET);
   delay(100);
 
-  len = sprintf(S, "Manufacturer=%x Device=%x\r", manufacturer, device);
+  sprintf(S, "Manufacturer=%x Device=%x\r", manufacturer, device);
   echo_all();
 }
 
@@ -282,10 +282,10 @@ void flashInspect(uint32_t starting, uint32_t upto) {
 
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     if (addr % 0x10 == 0) {
-      len = sprintf(S, "\r%06xh\t\t", addr);
+      sprintf(S, "\r%06xh\t\t", addr);
       echo_all();
     }
-    len = sprintf(S, "%04x\t", flashReadWord(addr));
+    sprintf(S, "%04x\t", flashReadWord(addr));
     echo_all();
   }
 
@@ -293,11 +293,16 @@ void flashInspect(uint32_t starting, uint32_t upto) {
 }
 
 void flashDump(uint32_t starting = 0, uint32_t upto = FLASH_SIZE) {
-  flashCommand(zeroWithBank(starting), CMD_RESET);
-  delayMicroseconds(100);
+  uint32_t bank = ~0;
   busRead();
 
   for (uint32_t addr = starting; addr < upto; addr += 2) {
+    uint32_t newBank = zeroWithBank(addr);
+    if (bank != newBank) {
+      bank = newBank;
+      flashCommand(bank, CMD_RESET);
+      delay(10);
+    }
     uint16_t word = flashReadWord(addr);
     usb_web.write(word >> 8);
     usb_web.write(word & 0xff);
@@ -308,27 +313,28 @@ void flashDump(uint32_t starting = 0, uint32_t upto = FLASH_SIZE) {
 
 // Returns whether programming should continue
 bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expectedBytes) {
-#ifdef DEBUG_LED
-  ledColor(0x400040);
-#endif
+  ledColor(0x400040);  // magenta
   static int retries = 0;
 
   if ((bufLen % 2) == 1) {
-    len = sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
+    sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
     echo_all();
   }
 
+  if (bufLen <= 0) {
+    echo_all("WARNING: Empty buffer\r");
+  }
+
   // echo progress at fixed intervals
-  if ((addr & 0x1fff) == 0) {
-    len = sprintf(S, "%06xh ", addr);
+  if (addr % 0x10000 == 0) {
+    sprintf(S, "%06xh ", addr);
     if (retries > 0) {
-      len = sprintf(S, "%S%d retries ", retries);
+      sprintf(S, "%S%d retries ", retries);
       retries = 0;
     }
     echo_all();
   }
 
-#if OPT_MULTIBYTE
   // All of these are in BYTES
   // addr - overall address
   // buf - multi-byte buffer sent over by USB
@@ -356,8 +362,8 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     if (addr < bankBoundary && addr + bytesToWrite >= bankBoundary) {
       atBoundary = true;
       bytesToWrite = MIN(bankBoundary - addr, MAX_MULTIBYTE_WRITE);
-      len = sprintf(S, "\r\nFinal write into bank 0 writing %d bytes from %x to %x\r\n", bytesToWrite, addr, addr + bytesToWrite);
-      echo_all();
+      // sprintf(S, "\r\nFinal write into bank 0 writing %d bytes from %x to %x\r\n", bytesToWrite, addr, addr + bytesToWrite);
+      // echo_all();
     }
     int wordsToWrite = bytesToWrite / 2;
 
@@ -371,9 +377,9 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
         break;
       } else {
         if (++retries > 1000) {
-          len = sprintf(S, "\r\nTIMEOUT @ %06x\r\n", addr);
+          sprintf(S, "\r\nTIMEOUT @ %06x\r\n", addr);
           echo_all();
-          ledColor(0xFF0000);
+          ledColor(RED);
           HALT;
         }
         // delayMicroseconds(10);
@@ -383,23 +389,19 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
       // for bigger errors, have a bigger delay before retry
       if (SR(1) == SR(4) == 1) {
-        len = sprintf(S, "Block lock error @ %06x\r\n", addr);
+        sprintf(S, "Block lock error @ %06x\r\n", addr);
         echo_all();
       }
       if (SR(3) == SR(4) == 1) {
-        len = sprintf(S, "Undervoltage error @ %06x\r\n", addr);
+        sprintf(S, "Undervoltage error @ %06x\r\n", addr);
         echo_all();
       }
       if (SR(4) == 1 || SR(5) == 1) {
-        len = sprintf(S, "Unable to multibyte write @ %06x\r\n", addr);
+        sprintf(S, "Unable to multibyte write @ %06x\r\n", addr);
         echo_all();
       }
       delay(10);
     } while (!SR(7));
-
-#ifdef DEBUG_LED
-    ledColor(0x00FF00);
-#endif
 
     // XSR.7 == 1 now, ready for write
     // A word/byte count (N)-1 is written with write address.
@@ -415,23 +417,19 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     // After the final buffer data is written, write confirm (DOH) must be written.
     // This initiates WSM to begin copying the buffer data to the Flash Array.
-    // flashCommand(0, 0xd0);
     // Use the bank we started with not the bank we ended with
     flashCommand(currentBank, 0xd0);
 
     if (atBoundary) {
-      echo_all("\r\nFinishing first block\r\n");
-      // while (!flashStatusCheck(currentBank)) {
-      //   delay(100);
-      // }
+      do {
+        delay(100);
+      } while (!flashStatusCheck(currentBank));
       // clear status register
       flashCommand(0, 0x50);
-      delay(100);
-      echo_all("\r\nStarting new block\r\n");
-      flashCommand(bankBoundary, 0xff);
-      delay(100);
+      flashCommand(bankBoundary, CMD_RESET);
       flashCommand(bankBoundary, 0x50);
-      delay(100);
+      // sprintf(S, "\rNew block bufPtr=%04x bufLen=%04x addr=%06x end=%06x\r", bufPtr, bufLen, addr, expectedBytes);
+      // echo_all();
     }
   }
 
@@ -443,40 +441,14 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     flashCommand(0, CMD_RESET);
 
-    len = sprintf(S, "\r\nWrote %d bytes in %f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
+    sprintf(S, "\r\nWrote %d bytes in %0.2f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all();
 
     busIdle();
     return false;
   }
 
-#ifdef DEBUG_LED
   ledColor(0x101010);
-#endif
 
   return true;
-#else
-  // Single-byte programming
-  for (int bufPtr = 0; bufPtr < bufLen; bufPtr += 2, addr += 2) {
-    uint16_t word = buf[bufPtr] << 8 | buf[bufPtr + 1];
-    // Skip padding assuming you have erased first
-    if (word == 0xffff) continue;
-
-    flashCommand(addr, 0x40);
-    flashCommand(addr, word);
-  }
-
-  if (addr >= expectedBytes) {
-    flashCommand(0, CMD_RESET);
-
-    len = sprintf(S, "\r\nWrote %d bytes in %f sec using single-byte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
-    echo_all();
-    busIdle();
-
-    ledColor(0);
-    return false;
-  }
-
-  return true;
-#endif
 }

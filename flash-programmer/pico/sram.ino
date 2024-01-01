@@ -69,7 +69,7 @@ void sramSaveFile(const char* filename, uint32_t saveSize = SRAM_SIZE) {
 
 bool sramLoadFile(const char* filename) {
   if (!LittleFS.exists(filename)) {
-    len = sprintf(S, "file %s doesn't exist\r\n", filename);
+    sprintf(S, "file %s doesn't exist\r\n", filename);
     echo_all();
     return false;
   }
@@ -77,12 +77,12 @@ bool sramLoadFile(const char* filename) {
   auto fileSize = file.size();
   auto expectedFileSize = flashCartHeaderSramSize();
   if (fileSize > SRAM_SIZE) {
-    len = sprintf(S, "Backed up file is bigger than SRAM size, aborting");
+    sprintf(S, "Backed up file is bigger than SRAM size, aborting");
     LittleFS.remove(filename);
     return false;
   }
   if (fileSize != expectedFileSize) {
-    len = sprintf(S, "Backup size %s is wrong size, expected %d, actual %d, continuing anyway...\r\n", filename, expectedFileSize, fileSize);
+    sprintf(S, "Backup size %s is wrong size, expected %d, actual %d, continuing anyway...\r\n", filename, expectedFileSize, fileSize);
     echo_all();
   }
 
@@ -118,10 +118,10 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
 
   for (uint32_t addr = starting; addr < upto; addr++) {
     if (addr % 0x10 == 0) {
-      len = sprintf(S, "\r%06xh\t\t", addr);
+      sprintf(S, "\r%06xh\t\t", addr);
       echo_all();
     }
-    len = sprintf(S, "%02x\t", sramReadByte(addr));
+    sprintf(S, "%02x\t", sramReadByte(addr));
     echo_all();
   }
 
@@ -163,7 +163,7 @@ bool sramErase() {
     sramWriteByte(addr, 0xff);
   }
 
-  len = sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", SRAM_SIZE, (millis() - stopwatch) / 1000.0);
+  sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", SRAM_SIZE, (millis() - stopwatch) / 1000.0);
   echo_all();
 
   sramDeselect();
@@ -176,7 +176,7 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint32_t expec
     sramWriteByte(addr, buf[bufPtr]);
     // echo progress at fixed intervals
     if ((addr & 0x1fff) == 0) {
-      len = sprintf(S, "%06xh ", addr);
+      sprintf(S, "%06xh ", addr);
       echo_all();
     }
   }
@@ -185,7 +185,7 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint32_t expec
   if (addr >= expectedBytes) {
     sramDeselect();
 
-    len = sprintf(S, "\r\nWrote %d bytes in %f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
+    sprintf(S, "\r\nWrote %d bytes in %0.2f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
     echo_all();
     echo_ok();
 
