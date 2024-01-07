@@ -173,8 +173,8 @@ $('button.qa-wipe').addEventListener('click', async ({target}) => {
     await commandWithProgress(`Es\r`, 'Erasing SRAM');
     await sleep(100);
     await commandWithProgress(`Sf\r`, 'Formatting Filesystem');
-    await runTest('Verifying flash erased', assertFlashFirstBlockBlank());
-    await runTest('Verifying SRAM erased', assertSramBlank());
+    await assertFlashFirstBlockBlank();
+    await assertSramBlank();
     log('WIPED!', true);
     target.innerText += PASS;
 });

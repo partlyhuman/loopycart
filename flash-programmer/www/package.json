@@ -4,7 +4,8 @@
   "description": "WebUSB interface to Floopy Drive programmer",
   "scripts": {
     "start": "parcel src/index.html",
-    "build": "parcel build src/index.html"
+    "build": "parcel build src/index.html",
+    "qa": "parcel src/qa.html"
   },
   "repository": {
     "type": "git",
