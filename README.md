@@ -2,6 +2,8 @@
 
 This is a flashcart/devcart for the Casio Loopy. See the [User's Guide](https://github.com/partlyhuman/loopycart/wiki)!
 
+Pre-built carts available on [Tindie](https://www.tindie.com/products/partlyhuman/the-floopy-drive/)!
+
 To help find your way around:
 
 * [pcb/flash-32mbit/](pcb/flash-32mbit/) The star of the show, the Floopy Drive PCB
@@ -18,6 +20,11 @@ Related repositories:
 * [Loopy-Tools](https://github.com/kasamikona/Loopy-Tools) — a treasure trove of documentation and tooling around the Loopy
 * [LoopyMSE](https://github.com/PSI-Rockin/LoopyMSE) — an open-source cross-platform Loopy emulator
 
+Associated URLs
+* [loopy.land](https://loopy.land/) Home
+* [f.loopy.land](https://f.loopy.land/) Flashing interface (not very useful without a Floopy Drive attached.)
+* [wan.loopy.land](https://wan.loopy.land/) Save trainer for Wanwan Aijou Monogatari
+
 ### Contributors! 💕
 
-None of this would be possible without the contributions of [@kasamikona](https://github.com/kasamikona) and [@kvanderlaag](https://github.com/kvanderlaag), with many, many additional thanks to the members of the [Unloved Budget Computer Hole](https://discord.gg/rpCS6MEjss) Discord server.
+None of this would be possible without the contributions of [@kasamikona](https://github.com/kasamikona) and [@kvanderlaag](https://github.com/kvanderlaag), with many, many additional thanks to the members of the [Unloved Budget Computer Hole](https://discord.gg/DH8cArK2) Discord server.
