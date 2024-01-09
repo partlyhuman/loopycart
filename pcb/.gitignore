@@ -32,16 +32,16 @@ fp-info-cache
 *.ses
 
 # Exported BOM files
-*.xml
-*.csv
+#*.xml
+#*.csv
 
 ### KiCad Patch ###
 rescue-backup/
 
 *.tsv
-bom/
+#bom/
 
 # Gerber export output
-out/
+#out/
 
 # End of https://www.toptal.com/developers/gitignore/api/kicad
