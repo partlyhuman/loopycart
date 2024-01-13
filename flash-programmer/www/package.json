@@ -20,6 +20,7 @@
     "parcel": "^2.8.3"
   },
   "dependencies": {
+    "7.css": "^0.16.0",
     "sprintf-js": "^1.1.2"
   },
   "browserslist": [

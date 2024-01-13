@@ -16,10 +16,9 @@ let port;
 
 export const $ = document.querySelector.bind(document);
 const $body = $('body');
-const $connectButton = $('#connect');
-const $statusDisplay = $('#status');
+const $connectButton = $('button#connect');
+const $statusDisplay = $('#progress-text');
 const $lines = $('#receiver_lines');
-const $progress = $('#progress');
 
 export function sleep(ms) {
     return new Promise((resolve) => {
@@ -84,21 +83,20 @@ export function log(text, copyToConsole = false) {
 }
 
 function setProgress(n) {
-    $progress.innerText = n;
+    const $inner = $('#progress-inner');
+    const $outer = $('#progress-outer');
     if (typeof (n) === 'number') {
-        $progress.classList.remove('indeterminate');
-        $progress.indeterminate = false;
-        $progress.value = n;
+        $outer.classList.remove('marquee');
+        $inner.style.width = `${n * 100}%`;
     } else if (typeof (n) === 'boolean' && n === true) {
-        $progress.indeterminate = true;
-        $progress.removeAttribute('value');
-        $progress.classList.add('indeterminate');
+        $outer.classList.add('marquee');
     } else {
-        $progress.classList.remove('indeterminate');
-        $progress.indeterminate = false;
-        $progress.value = 0;
+        $outer.classList.remove('marquee');
+        $inner.style.width = '0';
     }
 }
+
+window.setProgress = setProgress;
 
 function setBusy(b) {
     if (b) {
@@ -106,23 +104,44 @@ function setBusy(b) {
     } else {
         $body.classList.remove('busy');
     }
+    document.querySelectorAll('button').forEach(el => {
+        if (!el.classList.contains('ignore-busy')) {
+            el.disabled = b;
+        }
+    });
 }
 
-function setStepInfo(str) {
-    $('.progress-text').innerText = str ?? '';
+window.setBusy = setBusy;
+
+function setStatus(str) {
+    $statusDisplay.innerText = str ?? '';
     console.log(str);
 }
 
-async function showError(str) {
-    // TODO this should display a dialog box and block until confirmed
+function showError(str) {
+    const $dialog = $('#dialog-error');
+
     console.error(str);
     log("ERROR: " + str + "\r\n");
-    await sleep(500);
+
+    return new Promise((resolve) => {
+        $dialog.querySelector('.body').innerText = str;
+        $dialog.querySelectorAll('button').forEach(btn => {
+            const result = btn.dataset['result'];
+            btn.addEventListener('click', (event) => {
+                $dialog.classList.remove('open');
+                resolve(result);
+            }, {once: true});
+        });
+        $dialog.classList.add('open');
+    });
 }
+
+window.showError = showError;
 
 export async function commandWithProgress(command, stepInfo = '', indefinite = true) {
     setProgress(indefinite || 0);
-    setStepInfo(stepInfo);
+    setStatus(stepInfo);
     await port.send(command);
     await waitForStatus();
 }
@@ -130,10 +149,10 @@ export async function commandWithProgress(command, stepInfo = '', indefinite = t
 async function connect() {
     try {
         await port.connect();
-        $statusDisplay.textContent = '';
-        $connectButton.textContent = 'Disconnect';
-        console.log('---connected---');
+        $statusDisplay.innerText = 'Connected';
+        $connectButton.classList.remove('default');
 
+        // Parse initial connection message
         port.onReceive = (data) => {
             const text = textDecoder.decode(data);
             const match = text.match(/^!FW ([A-Za-z0-9]+)/);
@@ -145,14 +164,13 @@ async function connect() {
             serialEcho(data);
         }
     } catch (error) {
-        $statusDisplay.textContent = error;
+        $statusDisplay.innerText = error;
     }
 }
 
 async function disconnect() {
     await port.disconnect();
-    $connectButton.textContent = 'Connect';
-    $statusDisplay.textContent = '';
+    $connectButton.classList.add('default');
     port = null;
 }
 
@@ -164,16 +182,16 @@ $connectButton?.addEventListener('click', async () => {
             port = selectedPort;
             connect().then();
         }).catch(error => {
-            $statusDisplay.textContent = error;
+            $statusDisplay.innerText = error;
         });
     }
 });
 
 Serial.getPorts().then(ports => {
     if (ports.length === 0) {
-        $statusDisplay.textContent = 'No device found.';
+        $statusDisplay.innerText = 'No device found';
     } else {
-        $statusDisplay.textContent = 'Connecting...';
+        $statusDisplay.innerText = 'Connecting...';
         port = ports[0];
         connect().then();
     }
@@ -246,11 +264,8 @@ async function uploadChunked(buffer) {
             // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
         }
         console.log("DONE!");
+    } finally {
         setProgress(0);
-    } catch (e) {
-        console.error(e);
-        setProgress(0);
-        // set error message in UI
     }
 }
 
@@ -303,7 +318,7 @@ async function simpleFlash(/** @type File */ file) {
         // }
 
         // Flash
-        setStepInfo(`Flashing ${newGameName}`)
+        setStatus(`Flashing ${newGameName}`)
         await programFlash(buffer);
 
         // Restore old save or format SRAM if no existing backup
@@ -311,7 +326,7 @@ async function simpleFlash(/** @type File */ file) {
             await commandWithProgress('Sw\r', 'Restoring previous save');
         }
 
-        setStepInfo('DONE!');
+        setStatus('DONE!');
     } catch (err) {
         await showError(err.message);
     } finally {
@@ -335,40 +350,46 @@ $drop?.addEventListener('dragleave', (event) => event.target.classList.remove('o
 $drop?.addEventListener('dragend', (event) => event.target.classList.remove('over'));
 
 const $advancedMode = $('#advanced-mode');
+// restore initial state
 if (localStorage.getItem('advanced') === 'true') {
-    $body.classList.add('advanced');
-    $advancedMode.checked = true;
+    $advancedMode.setAttribute('open', 'open');
 }
-$advancedMode?.addEventListener('change', event => {
-    if (event.target.checked) {
-        $body.classList.add('advanced');
-        localStorage.setItem('advanced', 'true');
-    } else {
-        $body.classList.remove('advanced');
-        localStorage.setItem('advanced', 'false');
-    }
+$advancedMode?.addEventListener('click', async event => {
+    await sleep(0);
+    const open = $advancedMode.hasAttribute('open');
+    console.log(open.toString());
+    localStorage.setItem('advanced', open.toString());
 });
 
 //------------------- ADVANCED UI ----------------
 
-$('input.flash-upload')?.addEventListener('change', async ({target: {files}}) => {
-    if (!files || files.length === 0) {
-        console.log('No file selected');
-        return;
+$('.flash-upload-button')?.addEventListener('click', () => $('input.flash-upload').click());
+
+$('input.flash-upload')?.addEventListener('change', async ({target, target: {files}}) => {
+    try {
+        if (!files || files.length === 0) {
+            throw new Error('No file selected');
+        }
+        // TODO eliminate word arrays
+        let buffer = new Uint16Array(await files[0].arrayBuffer());
+        const info = parseRom(buffer);
+        if (info) {
+            console.log(`Identified ${info.name}`);
+        }
+
+        console.log('UPLOADING!');
+
+        buffer = trimEnd(buffer);
+        console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
+
+        await programFlash(buffer);
+    } catch (error) {
+        showError(error).then();
+    } finally {
+        console.dir(target);
+        // Allow set same file again
+        target.value = null;
     }
-    // TODO eliminate word arrays
-    let buffer = new Uint16Array(await files[0].arrayBuffer());
-    const info = parseRom(buffer);
-    if (info) {
-        console.log(`Identified ${info.name}`);
-    }
-
-    console.log('UPLOADING!');
-
-    buffer = trimEnd(buffer);
-    console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
-
-    await programFlash(buffer);
 });
 
 $('input.flash-upload-simple')?.addEventListener('change', ({target: {files}}) => {
@@ -379,7 +400,8 @@ $('input.flash-upload-simple')?.addEventListener('change', ({target: {files}}) =
     simpleFlash(files[0]).then();
 });
 
-$('input.sram-upload')?.addEventListener('change', async ({target: {files}}) => {
+$('.sram-upload-button')?.addEventListener('click', () => $('input.sram-upload').click());
+$('input.sram-upload')?.addEventListener('change', async ({target, target: {files}}) => {
     if (!files || files.length === 0) {
         console.log('No file selected');
         return;
@@ -395,6 +417,8 @@ $('input.sram-upload')?.addEventListener('change', async ({target: {files}}) => 
 
     await port.send(`Ps${buffer.byteLength}\r`);
     await uploadChunked(buffer);
+
+    target.value = null;
 });
 
 

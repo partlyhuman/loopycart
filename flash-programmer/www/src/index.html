@@ -10,66 +10,99 @@
     <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
     <link rel="manifest" href="assets/site.webmanifest">
 </head>
-<body>
+<body class="background">
 
 <main>
     <div class="connect-container">
-        <img src="assets/floopydrive.svg" alt="Floopy Drive!" height="180">
-        <button id="connect" class="button black">Connect</button>
-        <div class="row flex">
-            <span id="status"></span>
-            <span class="download-firmware hidden">New firmware available, <a href="https://github.com/partlyhuman/loopycart/raw/main/flash-programmer/pico/build/rp2040.rp2040.waveshare_rp2040_zero/pico.ino.uf2">download</a> 📥</span>
+        <button id="connect" class="default ignore-busy">
+            <img class="icon disconnected" src="assets/icon-usbc-50.png" width="50" height="50" alt="">
+            <span class="label disconnected">Connect</span>
+            <img class="icon connected" src="assets/icon-eject-30.png" width="30" height="30" alt="">
+            <span class="label connected">Disconnect</span>
+        </button>
+        <img class="logo" src="assets/floopydrive.svg" alt="Floopy Drive!">
+        <span class="download-firmware hidden">New firmware available, <a href="https://github.com/partlyhuman/loopycart/raw/main/flash-programmer/pico/build/rp2040.rp2040.waveshare_rp2040_zero/pico.ino.uf2">download</a> 📥</span>
+        <!--        <progress id="progress" value="0" max="1"></progress>-->
+    </div>
+
+    <div>
+        <div role="progressbar" id="progress-outer" class="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80">
+            <div id="progress-inner" style="width: 0"></div>
         </div>
-        <progress id="progress" value="0" max="1"></progress>
         <div id="progress-text" class="progress-text"></div>
     </div>
-    <div class="controls rom advanced">
-        <h2>ROM</h2>
-        <button class="flash-inspect button">Inspect</button>
-        <button class="flash-download button">Dump</button>
-        <button class="flash-erase-one button">Erase 2MB</button>
-        <button class="flash-erase button">Full Erase</button>
-        <input class="flash-upload" type="file">
-    </div>
-    <div class="controls sram advanced">
-        <h2>SRAM</h2>
-        <button class="sram-download button">Download</button>
-        <button class="sram-erase button">Erase</button>
-        <button class="sram-backup button">Backup</button>
-        <button class="sram-restore button">Restore</button>
-        <button class="sram-format-fs button">Format Backups</button>
-        <input class="sram-upload" type="file">
-    </div>
-    <div class="controls device advanced">
-        <h2>DEVICE</h2>
-        <label class="device-nickname"><input type="text" maxlength="48" placeholder="Your Name">
-            <button>Set</button>
-        </label>
-    </div>
+
     <div class="dump-file-link"></div>
 
-    <div class="simple">
+    <div class="simple-mode">
         <input class="flash-upload-simple hidden" type="file">
         <div class="drop">
-            <h1>Drop a Loopy ROM here!</h1>
+            <h2>Drop a Loopy ROM here!</h2>
             <h3 class="drop-encourage">Yes... good... right here...</h3>
         </div>
     </div>
 
-    <div class="logger-controls advanced">
-        <h2>Log</h2>
-        <button class="cls button">Clear</button>
-    </div>
+    <details id="advanced-mode">
+        <summary>Advanced controls</summary>
+        <div class="advanced">
+            <fieldset class="rom">
+                <legend>ROM</legend>
+                <div class="controls">
+                    <button class="flash-upload-button">Program</button>
+                    <input class="flash-upload hidden" type="file">
+                    <button class="flash-inspect">Inspect</button>
+                    <button class="flash-erase-one">Erase 2MB</button>
+                    <button class="flash-erase">Full Erase</button>
+                    <button class="flash-download">Dump</button>
+                </div>
+            </fieldset>
+            <fieldset class="sram">
+                <legend>SRAM</legend>
+                <div class="controls">
+                    <button class="sram-upload-button">Program</button>
+                    <input class="sram-upload hidden" type="file">
+                    <button class="sram-download">Download</button>
+                    <button class="sram-erase">Erase</button>
+                    <button class="sram-backup">Backup</button>
+                    <button class="sram-restore">Restore</button>
+                    <button class="sram-format-fs">Format Backups</button>
+                </div>
+            </fieldset>
+            <fieldset class="device-nickname">
+                <legend>Personalize this device</legend>
+                <input id="device-nickname" type="text" maxlength="48" placeholder="Your Name">
+                <button>Set</button>
+            </fieldset>
+
+        </div>
+    </details>
+
 
     <div class="logger" id="receiver_lines">
     </div>
 
-    <div style="text-align: right">
+    <div class="row">
+        <button class="cls button ignore-busy">Clear</button>
+        <div>
         🔗 <a target="_blank" href="https://github.com/partlyhuman/loopycart/wiki">User Guide</a>&nbsp;&nbsp;
-        <label><input id="advanced-mode" type="checkbox">Advanced mode</label>
+        </div>
     </div>
 </main>
 
+<div class="window is-bright dialog" role="dialog" id="dialog-error" aria-labelledby="dialog-title">
+    <div class="title-bar">
+        <!--        <div class="title-bar-text" id="dialog-title">Problem Diagnostics</div>-->
+        <div class="title-bar-controls">
+            <button data-result="false" aria-label="Close"></button>
+        </div>
+    </div>
+    <div class="body window-body has-space">
+    </div>
+    <footer style="text-align: right">
+        <!--        <button data-result="false">Cancel</button>-->
+        <button data-result="true">OK</button>
+    </footer>
+</div>
 
 <script type="module" src="index.js"></script>
 
