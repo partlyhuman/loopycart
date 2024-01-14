@@ -24,6 +24,11 @@ a {
   text-decoration: none;
   border-bottom: 1px solid hotpink;
   color: inherit;
+
+  &:hover {
+    color: hotpink;
+    text-decoration: none;
+  }
 }
 
 h1, h2, h3, h4, h5, .loopyfont, .h1 {
@@ -234,4 +239,15 @@ body.busy {
   .body {
     padding: 1rem;
   }
+}
+
+/* Fix 7.css chevron bug in Safari - thank you @kasamikona */
+details > summary {
+  list-style: none;
+}
+
+details > summary::marker, /* Latest Chrome, Edge, Firefox */
+details > summary::-webkit-details-marker /* Safari */
+{
+  display: none;
 }
