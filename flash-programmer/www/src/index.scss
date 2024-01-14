@@ -227,15 +227,18 @@ body.busy {
   align-items: center;
 }
 
-.window[role=dialog].open {
-  opacity: 1;
-  visibility: visible
-}
 
-.window[role=dialog] {
+#dialog-error {
+  &::before, & > .title-bar {
+    background-color: #db2525;
+  }
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+  }
   width: 60vw;
   max-width: 600px;
-
   .body {
     padding: 1rem;
   }

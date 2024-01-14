@@ -144,11 +144,11 @@ function showError(error) {
         $dialog.querySelectorAll('button').forEach(btn => {
             const result = btn.dataset['result'];
             btn.addEventListener('click', (event) => {
-                $dialog.classList.remove('open');
+                $dialog.classList.remove('active');
                 resolve(result);
             }, {once: true});
         });
-        $dialog.classList.add('open');
+        $dialog.classList.add('active');
     });
 }
 
@@ -223,6 +223,8 @@ if (typeof navigator.usb === 'object') {
         }
     });
 } else {
+    // $connectButton.classList.remove('default');
+    $connectButton.setAttribute('disabled', 'disabled');
     showError(ERROR_WEBUSB).then();
 }
 
