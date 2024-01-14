@@ -1,12 +1,16 @@
 import {Serial} from './serial';
 import {ADDR_HEADER_END, getCartDataFromHeader, lookupCartDatabase, parseRom, trimEnd} from './cart';
+import ERROR_WEBUSB from 'bundle-text:./data/error-webusb.html';
+import ERROR_CONNECT from 'bundle-text:./data/error-cant-connect.html';
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
 const FW_CURRENT = '84c7776';
 
+const U32_MAX = 0xffffffff;
 const SERIAL_BUFFER_SIZE = 64;
-export const SRAM_SIZE = 1 << 17;
+export const SRAM_SIZE = 0x20000;
+export const FLASH_SIZE = 0x400000;
 const UPLOAD_CHUNK_SIZE = 1024;
 const TRUNCATE_DUMPED_SRAM = true;
 
@@ -17,8 +21,21 @@ let port;
 export const $ = document.querySelector.bind(document);
 const $body = $('body');
 const $connectButton = $('button#connect');
-const $statusDisplay = $('#progress-text');
 const $lines = $('#receiver_lines');
+const $statusDisplay = $('#progress-text');
+const $progressInner = $('#progress-inner');
+const $progressOuter = $('#progress-outer');
+
+
+export function assert(b, message = "Unexpected state") {
+    if (b !== true) {
+        throw new Error(message);
+    }
+}
+
+function assertConnected() {
+    assert(port?.isOpen, `Not connected. Please connect a Floopy Drive and use the Connect button.`);
+}
 
 export function sleep(ms) {
     return new Promise((resolve) => {
@@ -83,20 +100,18 @@ export function log(text, copyToConsole = false) {
 }
 
 function setProgress(n) {
-    const $inner = $('#progress-inner');
-    const $outer = $('#progress-outer');
     if (typeof (n) === 'number') {
-        $outer.classList.remove('marquee');
-        $inner.style.width = `${n * 100}%`;
+        $progressInner.classList.remove('done');
+        $progressOuter.classList.remove('marquee');
+        $progressInner.style.width = `${n * 100}%`;
     } else if (typeof (n) === 'boolean' && n === true) {
-        $outer.classList.add('marquee');
+        $progressOuter.classList.add('marquee');
     } else {
-        $outer.classList.remove('marquee');
-        $inner.style.width = '0';
+        $progressOuter.classList.remove('marquee');
+        $progressInner.style.width = '0';
     }
 }
 
-window.setProgress = setProgress;
 
 function setBusy(b) {
     if (b) {
@@ -104,28 +119,28 @@ function setBusy(b) {
     } else {
         $body.classList.remove('busy');
     }
-    document.querySelectorAll('button').forEach(el => {
+    $progressInner.style.width = '0';
+    // Excludes dialog
+    $('main').querySelectorAll('button').forEach(el => {
         if (!el.classList.contains('ignore-busy')) {
             el.disabled = b;
         }
     });
 }
 
-window.setBusy = setBusy;
-
 function setStatus(str) {
-    $statusDisplay.innerText = str ?? '';
-    console.log(str);
+    $statusDisplay.innerHTML = str ?? '';
 }
 
-function showError(str) {
+function showError(error) {
+    const str = error?.message ?? error?.toString() ?? "Unknown error";
     const $dialog = $('#dialog-error');
 
     console.error(str);
-    log("ERROR: " + str + "\r\n");
+    // log("ERROR: " + str + "\r\n");
 
     return new Promise((resolve) => {
-        $dialog.querySelector('.body').innerText = str;
+        $dialog.querySelector('.body').innerHTML = str;
         $dialog.querySelectorAll('button').forEach(btn => {
             const result = btn.dataset['result'];
             btn.addEventListener('click', (event) => {
@@ -137,19 +152,25 @@ function showError(str) {
     });
 }
 
-window.showError = showError;
-
 export async function commandWithProgress(command, stepInfo = '', indefinite = true) {
-    setProgress(indefinite || 0);
-    setStatus(stepInfo);
-    await port.send(command);
-    await waitForStatus();
+    assertConnected();
+    setBusy(true);
+    try {
+        setProgress(indefinite || 0);
+        setStatus(stepInfo);
+        await port.send(command);
+        await waitForStatus();
+        setProgress();
+        setStatus('Done');
+    } finally {
+        setBusy(false);
+    }
 }
 
 async function connect() {
     try {
         await port.connect();
-        $statusDisplay.innerText = 'Connected';
+        setStatus('Connected');
         $connectButton.classList.remove('default');
 
         // Parse initial connection message
@@ -164,12 +185,13 @@ async function connect() {
             serialEcho(data);
         }
     } catch (error) {
-        $statusDisplay.innerText = error;
+        setStatus(error.message);
     }
 }
 
 async function disconnect() {
     await port.disconnect();
+    setStatus('Not connected');
     $connectButton.classList.add('default');
     port = null;
 }
@@ -178,24 +200,31 @@ $connectButton?.addEventListener('click', async () => {
     if (port) {
         await disconnect();
     } else {
-        Serial.requestPort().then(selectedPort => {
-            port = selectedPort;
-            connect().then();
-        }).catch(error => {
-            $statusDisplay.innerText = error;
-        });
+        try {
+            port = await Serial.requestPort();
+            await connect();
+        } catch (error) {
+            showError(ERROR_CONNECT).then();
+            setStatus('Could not connect to Floopy Drive');
+            console.error(error);
+        }
     }
 });
 
-Serial.getPorts().then(ports => {
-    if (ports.length === 0) {
-        $statusDisplay.innerText = 'No device found';
-    } else {
-        $statusDisplay.innerText = 'Connecting...';
-        port = ports[0];
-        connect().then();
-    }
-});
+if (typeof navigator.usb === 'object') {
+    Serial.getPorts().then(ports => {
+        if (ports.length === 0) {
+            setStatus(`Floopy Drive not found. Connect drive and press the Connect button when notification appears.`);
+        } else {
+            setStatus('Connecting...');
+            port = ports[0];
+            console.log(port);
+            connect().then();
+        }
+    });
+} else {
+    showError(ERROR_WEBUSB).then();
+}
 
 async function downloadAndParseCartHeader() {
     const size = roundSize(ADDR_HEADER_END);
@@ -206,9 +235,12 @@ export function download(bytesToDownload, serialCommand) {
     if (bytesToDownload % SERIAL_BUFFER_SIZE !== 0) {
         console.warn('Expected download size is not modulo serial buffer size');
     }
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        if (!port?.isOpen) {
+            reject('Not connected');
+        }
         const dumpBuffer = new ArrayBuffer(bytesToDownload);
-        console.log(`Dumping ${bytesToDownload} bytes...`);
+        setStatus(`Dumping ${bytesToDownload} bytes...`);
         let addrBytes = 0;
 
         port.onReceive = (/** @type DataView */ data) => {
@@ -223,9 +255,9 @@ export function download(bytesToDownload, serialCommand) {
             setProgress(addrBytes / bytesToDownload);
 
             if (addrBytes >= dumpBuffer.byteLength) {
-                console.log('Done download!');
                 port.onReceive = serialEcho;
                 setProgress(0);
+                setStatus('Done');
                 resolve(dumpBuffer);
             }
         }
@@ -239,7 +271,6 @@ export async function programFlash(buffer) {
     await uploadChunked(buffer);
     // Important to allow confirmation text to come from Floopy over serial and be parsed
     await sleep(250);
-
 }
 
 export async function programSram(buffer) {
@@ -279,11 +310,10 @@ export function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
 //------------------- BASIC UI -------------------
 
 async function simpleFlash(/** @type File */ file) {
-    setBusy(true);
     try {
-        if (!port?.isOpen) {
-            throw new Error('Not connected!');
-        }
+
+        assertConnected();
+        setBusy(true);
 
         // check to see if dropped is a loopy bin
         // TODO eliminate word arrays
@@ -303,37 +333,35 @@ async function simpleFlash(/** @type File */ file) {
         const isDifferentGame = currentRomHeader.checksum !== newGameHeader.checksum;
 
         // If different game, backup SRAM
-        if (isDifferentGame && currentRomHeader.checksum !== 0xffffffff) {
+        if (isDifferentGame && currentRomHeader.checksum !== U32_MAX) {
             await commandWithProgress('Sr\r', 'Backing up current save');
         }
 
-        // Erase only what's needed - great for small homebrew
-        await commandWithProgress(`E${buffer.byteLength}\r`, `Erasing flash`);
-
-        // Erase either half or full
+        // Erase either half or full - no speed benefit over erase exact number of bytes
         // if (originalSize <= 0x200000) {
         //     await commandWithProgress('E0\r', 'Erasing flash (half)');
         // } else {
         //     await commandWithProgress('E\r', 'Erasing flash (all)');
         // }
 
+        // Erase only what's needed - most efficient
+        await commandWithProgress(`E${buffer.byteLength}\r`, `Erasing flash`);
+
         // Flash
-        setStatus(`Flashing ${newGameName}`)
+        setStatus(`Flashing <b>${newGameName}</b>...`);
+        setBusy(true);
         await programFlash(buffer);
 
         // Restore old save or format SRAM if no existing backup
         if (isDifferentGame) {
+            // TODO could wipe only needed space
             await commandWithProgress('Sw\r', 'Restoring previous save');
         }
 
-        setStatus('DONE!');
-    } catch (err) {
-        await showError(err.message);
+        setStatus('Completed! You may disconnect your Floopy Drive.');
     } finally {
         setBusy(false);
     }
-    console.log('done', new Date())
-
 }
 
 const $drop = $('.drop');
@@ -354,10 +382,9 @@ const $advancedMode = $('#advanced-mode');
 if (localStorage.getItem('advanced') === 'true') {
     $advancedMode.setAttribute('open', 'open');
 }
-$advancedMode?.addEventListener('click', async event => {
+$advancedMode?.querySelector('summary')?.addEventListener('click', async event => {
     await sleep(0);
     const open = $advancedMode.hasAttribute('open');
-    console.log(open.toString());
     localStorage.setItem('advanced', open.toString());
 });
 
@@ -368,25 +395,26 @@ $('.flash-upload-button')?.addEventListener('click', () => $('input.flash-upload
 $('input.flash-upload')?.addEventListener('change', async ({target, target: {files}}) => {
     try {
         if (!files || files.length === 0) {
-            throw new Error('No file selected');
+            return;
         }
+        assertConnected();
+        setBusy(true);
+
         // TODO eliminate word arrays
         let buffer = new Uint16Array(await files[0].arrayBuffer());
         const info = parseRom(buffer);
+        buffer = trimEnd(buffer);
+
         if (info) {
-            console.log(`Identified ${info.name}`);
+            setStatus(`Programming ${info.name} (${buffer.byteLength} bytes) to flash...`)
+        } else {
+            setStatus(`Programming ${buffer.byteLength} bytes to flash...`);
         }
 
-        console.log('UPLOADING!');
-
-        buffer = trimEnd(buffer);
-        console.log(`Sending ${buffer.byteLength} bytes / ${buffer.length} words`);
-
         await programFlash(buffer);
-    } catch (error) {
-        showError(error).then();
+        setStatus('Done');
     } finally {
-        console.dir(target);
+        setBusy(false);
         // Allow set same file again
         target.value = null;
     }
@@ -394,7 +422,6 @@ $('input.flash-upload')?.addEventListener('change', async ({target, target: {fil
 
 $('input.flash-upload-simple')?.addEventListener('change', ({target: {files}}) => {
     if (!files || files.length === 0) {
-        console.log('No file selected');
         return;
     }
     simpleFlash(files[0]).then();
@@ -402,94 +429,123 @@ $('input.flash-upload-simple')?.addEventListener('change', ({target: {files}}) =
 
 $('.sram-upload-button')?.addEventListener('click', () => $('input.sram-upload').click());
 $('input.sram-upload')?.addEventListener('change', async ({target, target: {files}}) => {
-    if (!files || files.length === 0) {
-        console.log('No file selected');
-        return;
+    try {
+        if (!files || files.length === 0) {
+            return;
+        }
+        assertConnected();
+        setBusy(true);
+
+        const buffer = new Uint8Array(await files[0].arrayBuffer());
+        assert(buffer.byteLength <= SRAM_SIZE, `Save expected to be ${SRAM_SIZE} bytes or less, was ${buffer.byteLength}`);
+
+        setStatus(`Programming ${buffer.byteLength} bytes of SRAM...`);
+
+        await port.send(`Ps${buffer.byteLength}\r`);
+        await uploadChunked(buffer);
+        setProgress();
+        setStatus('Done');
+    } finally {
+        // Allow set same file again
+        setBusy(false);
+        target.value = null;
     }
-
-    console.log('UPLOADING!');
-    let buffer = new Uint8Array(await files[0].arrayBuffer());
-
-    if (buffer.byteLength > SRAM_SIZE) {
-        console.error(`Save expected to be ${SRAM_SIZE} bytes or less, was ${buffer.byteLength}`);
-        return;
-    }
-
-    await port.send(`Ps${buffer.byteLength}\r`);
-    await uploadChunked(buffer);
-
-    target.value = null;
 });
 
 
 $('button.flash-inspect')?.addEventListener('click', async () => {
-    const header = await downloadAndParseCartHeader();
-    console.log(header);
-    log(`Parsed header: ${JSON.stringify(header)}\r\n`);
-    const cart = lookupCartDatabase(header.checksum);
-    if (cart) {
-        console.log(cart);
-        log(`Identified in database as: ${JSON.stringify(cart)}\r\n\r\n`);
-    }
+    try {
+        assertConnected();
+        setBusy(true);
+        const header = await downloadAndParseCartHeader();
+        // console.log(header);
+        log(`Parsed header: ${JSON.stringify(header)}\r\n`);
 
-    await port.send('I\r');
+        const cart = lookupCartDatabase(header.checksum);
+        if (cart) {
+            log(`Identified in database as: ${JSON.stringify(cart)}\r\n\r\n`);
+            setStatus(`Current Loopy game: <b>${cart.name}</b>`);
+        } else if (header.checksum === U32_MAX) {
+            setStatus('Cart seems to be empty');
+        } else {
+            setStatus('Contents not matched in cart database');
+        }
+
+        await port.send('I\r');
+    } finally {
+        setBusy(false);
+    }
 });
 
 $('button.sram-backup')?.addEventListener('click', async () => {
-    await port.send('Sr\r');
+    await commandWithProgress('Sr\r', 'Backing up save to onboard storage...');
 });
 
 $('button.sram-restore')?.addEventListener('click', async () => {
-    await port.send('Sw\r');
+    await commandWithProgress('Sw\r', 'Restoring previous save from onboard storage...');
 });
 
 $('button.sram-format-fs')?.addEventListener('click', async () => {
-    await port.send('Sf\r');
+    // TODO confirmation
+    await commandWithProgress('Sf\r', 'Erasing all backed-up saves...');
 });
 
 $('button.flash-download')?.addEventListener('click', async () => {
-    const header = await downloadAndParseCartHeader();
-    console.log(`downloading ${header.romSize} bytes`);
-    saveBufferToFile(await download(header.romSize, `D${header.romSize}\r`), 'loopy-rom.bin');
+    try {
+        assertConnected();
+        setBusy(true);
+        const header = await downloadAndParseCartHeader();
+        assert(header.romSize > 0 && header.romSize <= FLASH_SIZE,
+            `Header indicates invalid ROM size ${header.romSize}. Flash contents might be empty or invalid Loopy ROM.`);
+        setStatus(`Dumping ${header.romSize} bytes...`);
+        saveBufferToFile(await download(header.romSize, `D${header.romSize}\r`), 'loopy-rom.bin');
+    } finally {
+        setBusy(false);
+    }
 });
 
 $('button.sram-download')?.addEventListener('click', async () => {
-    const header = await downloadAndParseCartHeader();
-    const cart = lookupCartDatabase(header.checksum);
+    try {
+        assertConnected();
+        setBusy(true);
+        const header = await downloadAndParseCartHeader();
+        const cart = lookupCartDatabase(header.checksum);
 
-    // SRAM always downloads the whole thing, this is a good thing, we can truncate if desired
-    let buffer = await download(SRAM_SIZE, `Ds\r`);
-    if (cart && TRUNCATE_DUMPED_SRAM) {
-        if (header.sramSize > 0 && header.sramSize < buffer.byteLength) {
-            console.log(`truncating ${buffer.byteLength / 1024}kb downloaded to declared save size of ${header.sramSize / 1024}kb`)
-            buffer = new Uint8Array(buffer, 0, header.sramSize);
+        // SRAM always downloads the whole thing, this is a good thing, we can truncate if desired
+        let buffer = await download(SRAM_SIZE, `Ds\r`);
+        if (cart && TRUNCATE_DUMPED_SRAM) {
+            if (header.sramSize > 0 && header.sramSize < buffer.byteLength) {
+                console.log(`truncating ${buffer.byteLength / 1024}kb downloaded to declared save size of ${header.sramSize / 1024}kb`)
+                buffer = new Uint8Array(buffer, 0, header.sramSize);
+            }
+            saveBufferToFile(buffer, `${cart.name}.sav`);
+        } else {
+            saveBufferToFile(buffer, 'loopy.sav')
         }
-        saveBufferToFile(buffer, `${cart.name}.sav`);
-    } else {
-        saveBufferToFile(buffer, 'loopy.sav')
+    } finally {
+        setBusy(false);
     }
 });
 
 $('button.flash-erase')?.addEventListener('click', async () => {
-    setProgress(true);
-    await port.send('E\r');
+    await commandWithProgress('E\r', 'Erasing flash banks 0 and 1...');
 });
 $('button.flash-erase-one')?.addEventListener('click', async () => {
-    setProgress(true);
-    await port.send('E0\r');
+    await commandWithProgress('E0\r', 'Erasing flash bank 0...');
 });
 $('button.sram-erase')?.addEventListener('click', async () => {
-    setProgress(true);
-    await port.send('Es\r');
+    await commandWithProgress('Es\r', 'Initializing full contents of SRAM...');
 });
 
 $('.device-nickname button')?.addEventListener('click', async () => {
+    assertConnected();
     const nick = $('.device-nickname input').value;
     await port.send(`N${nick}\r`);
 });
 
 $('form.manual-command')?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    assertConnected();
     const $input = $('.manual-command input');
     const cmd = `${$input.value.toUpperCase().trim()}\r`;
     $input.value = '';
@@ -499,4 +555,11 @@ $('form.manual-command')?.addEventListener('submit', async (event) => {
 
 $('button.cls')?.addEventListener('click', () => {
     $('#receiver_lines').innerHTML = '';
+});
+
+window.addEventListener('unhandledrejection', rejectionEvent => {
+    showError(rejectionEvent.reason).then();
+});
+window.addEventListener('error', errEvent => {
+    showError(errEvent.error).then()
 });

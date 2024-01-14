@@ -139,7 +139,7 @@ main {
   }
 
   #progress-inner {
-    transition: width 0.5s;
+    //transition: width 0.2s;
   }
 }
 
@@ -225,4 +225,13 @@ body.busy {
 .window[role=dialog].open {
   opacity: 1;
   visibility: visible
+}
+
+.window[role=dialog] {
+  width: 60vw;
+  max-width: 600px;
+
+  .body {
+    padding: 1rem;
+  }
 }
