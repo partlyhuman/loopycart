@@ -140,10 +140,12 @@ function showError(error) {
     // log("ERROR: " + str + "\r\n");
 
     return new Promise((resolve) => {
+        $('main').classList.add('dim');
         $dialog.querySelector('.body').innerHTML = str;
         $dialog.querySelectorAll('button').forEach(btn => {
             const result = btn.dataset['result'];
             btn.addEventListener('click', (event) => {
+                $('main').classList.remove('dim');
                 $dialog.classList.remove('active');
                 resolve(result);
             }, {once: true});
@@ -211,6 +213,7 @@ $connectButton?.addEventListener('click', async () => {
     }
 });
 
+// CONNECT ON LOAD
 if (typeof navigator.usb === 'object') {
     Serial.getPorts().then(ports => {
         if (ports.length === 0) {
@@ -223,9 +226,8 @@ if (typeof navigator.usb === 'object') {
         }
     });
 } else {
-    // $connectButton.classList.remove('default');
-    $connectButton.setAttribute('disabled', 'disabled');
-    showError(ERROR_WEBUSB).then();
+    setStatus('ERROR: WebUSB not supported on this browser');
+    showError(ERROR_WEBUSB).then(); // Should you be allowed to dismiss this?
 }
 
 async function downloadAndParseCartHeader() {

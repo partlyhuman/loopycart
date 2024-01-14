@@ -20,6 +20,10 @@ html, body {
   display: none !important;
 }
 
+.noclick {
+  pointer-events: none;
+}
+
 a {
   text-decoration: none;
   border-bottom: 1px solid hotpink;
@@ -54,6 +58,14 @@ main {
   margin: 0 auto;
   flex-direction: column;
   gap: 1rem;
+
+  &.dim {
+    pointer-events: none;
+    filter: blur(2px);
+    opacity: 50%;
+  }
+
+  transition: all 0.2s;
 }
 
 .controls {
@@ -233,7 +245,7 @@ body.busy {
     background-color: #db2525;
   }
 
-  &.active {
+  &.active, &.permanent {
     opacity: 1;
     visibility: visible;
   }
