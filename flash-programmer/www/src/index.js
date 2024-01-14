@@ -34,7 +34,7 @@ export function assert(b, message = "Unexpected state") {
 }
 
 function assertConnected() {
-    assert(port?.isOpen, `Not connected. Please connect a Floopy Drive and use the Connect button.`);
+    assert(port?.isOpen === true, `Not connected. Please connect a Floopy Drive and use the Connect button.`);
 }
 
 export function sleep(ms) {
@@ -151,6 +151,7 @@ function showError(error) {
             }, {once: true});
         });
         $dialog.classList.add('active');
+        $dialog.querySelector('button.default')?.focus();
     });
 }
 
