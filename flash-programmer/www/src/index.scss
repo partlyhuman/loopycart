@@ -1,3 +1,5 @@
+@import "../node_modules/7.css/dist/7.css";
+
 @font-face {
   font-family: Loopy;
   src: url("assets/SouvenirStd-DemiItalic.otf") format("opentype");
@@ -49,32 +51,70 @@ main {
   gap: 1rem;
 }
 
-input, button {
-  padding: 0.1rem 1rem;
-  display: inline-block;
-  font-size: 1.5rem;
-}
-
-button#connect {
-  background: deepskyblue;
-}
-
 .controls {
-  display: flex;
+  display: flex !important;
+  width: 100%;
   flex-direction: row;
-  align-items: center;
-  justify-content: start;
+  align-items: stretch;
   gap: 1rem;
 }
 
 .controls input, .controls button {
-  height: 100%;
+  flex: 1;
 }
 
 .connect-container {
+  width: 100%;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 80px;
+
+  .logo {
+    --width: 150px;
+    position: absolute;
+    width: var(--width);
+    height: auto;
+    margin-left: calc(var(--width) / -2);
+    margin-bottom: -15px;
+    left: 50%;
+    bottom: 0;
+  }
+}
+
+#connect {
+  & > .disconnected {
+    display: none;
+  }
+
+  & > .connected {
+    display: inherit;
+  }
+
+  &.default {
+    & > .connected {
+      display: none;
+    }
+
+    & > .disconnected {
+      display: inherit;
+    }
+  }
+
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  padding: 0.5rem 1rem;
+  font-size: 2em;
+
+  img {
+    width: auto;
+    height: 25px;
+  }
 }
 
 .row {
@@ -84,31 +124,23 @@ button#connect {
 
 .qa .row {
   height: 5em;
+
   * {
     flex: 1;
   }
 }
 
-#progress {
-  //display: inline;
-  //width: 98%;
+.progressbar {
   display: block;
   width: 100%;
-  margin-top: 20px;
+  //margin-top: 20px;
+  &.marquee #progress-inner {
+    display: none;
+  }
 
-
-  //-webkit-appearance: none;
-  //
-  //&::-webkit-progress-value {
-  //  background-color: hotpink;
-  //  border-radius: 12px;
-  //}
-  //
-  //&::-webkit-progress-bar {
-  //  background-color: rgba(0,0,0,0.1);
-  //  border-radius: 12px;
-  //  height: 24px;
-  //}
+  #progress-inner {
+    //transition: width 0.2s;
+  }
 }
 
 #progress-text {
@@ -116,22 +148,6 @@ button#connect {
   text-align: center;
   font-size: small;
 }
-
-#busy-indicator {
-  display: none;
-  //float:right;
-  //margin-top: 5px;
-  //
-  //width: 10px;
-  //height: 10px;
-  //border-radius: 10px;
-  //border: 1px solid rgba(0,0,0,0.2);
-  //background-color: transparent;
-  //&.busy {
-  //  background-color: hotpink;
-  //}
-}
-
 
 .logger-controls {
   display: flex;
@@ -158,35 +174,19 @@ button#connect {
 }
 
 
-body {
-  .advanced {
-    display: none;
-  }
-
-  .simple {
-    display: inherit;
-  }
-
-  &.advanced .advanced {
-    display: inherit;
-  }
-
-  &.advanced .simple {
-    display: none;
-  }
-}
-
 body.busy {
-  .simple .drop {
+  .simple-mode .drop {
     visibility: hidden;
   }
 }
 
-.simple {
-  flex: 2;
+#advanced-mode {
+  fieldset {
+    margin-top: 1em;
+  }
 }
 
-.simple .drop {
+.simple-mode .drop {
   border: 4px transparent;
   width: 100%;
   //height: 200px;
@@ -214,10 +214,24 @@ body.busy {
   }
 }
 
-.row.flex {
+.row {
   margin: 0;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+}
+
+.window[role=dialog].open {
+  opacity: 1;
+  visibility: visible
+}
+
+.window[role=dialog] {
+  width: 60vw;
+  max-width: 600px;
+
+  .body {
+    padding: 1rem;
+  }
 }
