@@ -30,10 +30,11 @@ export class Port {
         this.interfaceNumber = 0;
         this.endpointIn = 0;
         this.endpointOut = 0;
-        this.onReceive = () => {
+        const noop = () => {
         };
-        this.onReceiveError = () => {
-        };
+        this.onReceive = noop;
+        this.onReceiveError = noop;
+        this.onDisconnect = noop;
     }
 
     get isOpen() {
@@ -41,15 +42,6 @@ export class Port {
     }
 
     async connect() {
-        const readLoop = () => {
-            this._device.transferIn(this.endpointIn, BUFSIZE).then(result => {
-                this.onReceive(result.data);
-                readLoop();
-            }, error => {
-                this.onReceiveError(error);
-            });
-        };
-
         await this._device.open();
 
         if (this._device.configuration === null) {
@@ -77,25 +69,46 @@ export class Port {
 
         await this._device.selectAlternateInterface(this.interfaceNumber, 0);
         await this._device.controlTransferOut({
-            'requestType': 'class',
-            'recipient': 'interface',
-            'request': 0x22,
-            'value': 0x01,
-            'index': this.interfaceNumber
+            requestType: 'class',
+            recipient: 'interface',
+            request: 0x22,
+            value: 0x01,
+            index: this.interfaceNumber,
         });
 
-        readLoop();
+        navigator.usb.addEventListener('disconnect', ({device}) => {
+            if (device === this._device) {
+                this.onDisconnect();
+            }
+        });
+
+        const readLoop = async () => {
+            try {
+                const {data} = await this._device.transferIn(this.endpointIn, BUFSIZE);
+                this.onReceive(data);
+                // Clear the stack
+                setTimeout(readLoop, 0);
+            } catch (error) {
+                this.onReceiveError(error);
+            }
+        }
+        // This could help avoid deadlock between initial read and write
+        // TODO add a NOOP function to firmware to explicitly do nothing without triggering "unknown command"
+        await this.send("S");
+        // don't await, we're ready to go as soon as this returns
+        readLoop().then();
     }
 
     async disconnect() {
         await this._device.controlTransferOut({
-            'requestType': 'class',
-            'recipient': 'interface',
-            'request': 0x22,
-            'value': 0x00,
-            'index': this.interfaceNumber
+            requestType: 'class',
+            recipient: 'interface',
+            request: 0x22,
+            value: 0x00,
+            index: this.interfaceNumber,
         });
-        return await this._device.close();
+        await this._device.releaseInterface(this.interfaceNumber);
+        await this._device.close();
     }
 
     async send(data) {

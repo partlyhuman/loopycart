@@ -112,6 +112,7 @@ function setProgress(n) {
     }
 }
 
+let isBusy = false;
 
 function setBusy(b) {
     if (b) {
@@ -119,6 +120,7 @@ function setBusy(b) {
     } else {
         $body.classList.remove('busy');
     }
+    isBusy = b;
     $progressInner.style.width = '0';
     // Excludes dialog
     $('main').querySelectorAll('button').forEach(el => {
@@ -187,6 +189,10 @@ async function connect() {
             port.onReceive = serialEcho;
             serialEcho(data);
         }
+        port.onDisconnect = () => {
+            setStatus('Disconnected.');
+            $connectButton.classList.add('default');
+        }
     } catch (error) {
         setStatus(error.message);
     }
@@ -214,22 +220,43 @@ $connectButton?.addEventListener('click', async () => {
     }
 });
 
-// CONNECT ON LOAD
-if (typeof navigator.usb === 'object') {
-    Serial.getPorts().then(ports => {
-        if (ports.length === 0) {
-            setStatus(`Floopy Drive not found. Connect drive and press the Connect button when notification appears.`);
-        } else {
-            setStatus('Connecting...');
-            port = ports[0];
-            console.log(port);
-            connect().then();
-        }
-    });
-} else {
-    setStatus('ERROR: WebUSB not supported on this browser');
-    showError(ERROR_WEBUSB).then(); // Should you be allowed to dismiss this?
+async function usbInit() {
+    if (typeof navigator.usb !== 'object') {
+        setStatus('ERROR: WebUSB not supported on this browser');
+        await showError(ERROR_WEBUSB); // Should you be allowed to dismiss this?
+        return;
+    }
+    const ports = await Serial.getPorts();
+    if (ports.length === 0) {
+        setStatus(`Floopy Drive not found. Connect drive and press the Connect button when notification appears.`);
+    } else {
+        setStatus('Connecting...');
+        port = ports[0];
+        await connect();
+    }
 }
+
+// Connect on load
+sleep(100).then(() => {
+    usbInit().then(() => {
+        navigator.usb?.addEventListener('connect', usbInit);
+    });
+});
+
+// Warn on navigating away while busy
+window.addEventListener('beforeunload', event => {
+    if (isBusy) {
+        event.preventDefault();
+    }
+});
+
+// Attempt to disconnect cleanly when navigating away
+window.addEventListener('unload', async () => {
+    if (port?.isOpen) {
+        // This is never going to actually complete, but it's a nice idea
+        await disconnect();
+    }
+});
 
 async function downloadAndParseCartHeader() {
     const size = roundSize(ADDR_HEADER_END);
@@ -299,7 +326,7 @@ async function uploadChunked(buffer) {
             if (status !== "ok") throw new Error(`${status}`);
             // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
         }
-        console.log("DONE!");
+        // console.log("DONE!");
     } finally {
         setProgress(0);
     }
