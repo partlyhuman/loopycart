@@ -94,7 +94,7 @@ export class Port {
         }
         // This could help avoid deadlock between initial read and write
         // TODO add a NOOP function to firmware to explicitly do nothing without triggering "unknown command"
-        await this.send("S");
+        await this.send("D");
         // don't await, we're ready to go as soon as this returns
         readLoop().then();
     }
