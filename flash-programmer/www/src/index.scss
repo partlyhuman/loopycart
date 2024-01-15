@@ -98,6 +98,35 @@ main {
     margin-bottom: -15px;
     left: 50%;
     bottom: 0;
+
+    $sd: 20px;
+    $ss: 6px;
+    $t: 0.4;
+    $s: 1.03;
+    @keyframes glow {
+      from {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0 transparentize(#f0f, 1)) drop-shadow(0 0 0 transparentize(#0ff, 1));;
+      }
+      25% {
+        transform: scale($s);
+        filter: drop-shadow($sd 0 $ss transparentize(#f0f, $t)) drop-shadow(-1*$sd 0 $ss transparentize(#0ff, $t));
+      }
+      50% {
+        filter: drop-shadow(0 0 0 transparentize(#f0f, 1)) drop-shadow(0 0 0 transparentize(#0ff, 1));;
+        transform: scale(1);
+      }
+      75% {
+        transform: scale($s);
+        filter: drop-shadow(-1*$sd 0 $ss transparentize(#f0f, $t)) drop-shadow($sd 0 $ss transparentize(#0ff, $t));
+      }
+    }
+
+    @at-root body.busy & {
+      transform-origin: center center;
+      transform-style: preserve-3d;
+      animation: glow 10s ease-in-out infinite;
+    }
   }
 }
 
@@ -249,8 +278,10 @@ body.busy {
     opacity: 1;
     visibility: visible;
   }
+
   width: 60vw;
   max-width: 600px;
+
   .body {
     padding: 1rem;
   }
