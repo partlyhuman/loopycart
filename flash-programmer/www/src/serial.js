@@ -30,6 +30,7 @@ export class Port {
         this.interfaceNumber = 0;
         this.endpointIn = 0;
         this.endpointOut = 0;
+        this.firmware = null;
         const noop = () => {
         };
         this.onReceive = noop;
@@ -93,7 +94,8 @@ export class Port {
             }
         }
         // This could help avoid deadlock between initial read and write
-        // TODO add a NOOP function to firmware to explicitly do nothing without triggering "unknown command"
+        // TODO this can become \r when everyone's upgraded to '82c4a64'
+        // await this.send("".padEnd(BUFSIZE, "\r"));
         await this.send("D");
         // don't await, we're ready to go as soon as this returns
         readLoop().then();

@@ -5,7 +5,7 @@ import ERROR_CONNECT from 'bundle-text:./data/error-cant-connect.html';
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = '84c7776';
+const FW_CURRENT = '82c4a64';
 
 const U32_MAX = 0xffffffff;
 const SERIAL_BUFFER_SIZE = 64;
@@ -186,13 +186,14 @@ async function connect() {
             if (fw !== FW_CURRENT) {
                 $('.download-firmware').classList.remove('hidden');
             }
+            port.firmware = fw;
             port.onReceive = serialEcho;
             serialEcho(data);
-        }
+        };
         port.onDisconnect = () => {
             setStatus('Disconnected.');
             $connectButton.classList.add('default');
-        }
+        };
     } catch (error) {
         setStatus(error.message);
     }
@@ -301,18 +302,24 @@ export function download(bytesToDownload, serialCommand) {
 export async function programFlash(buffer) {
     await port.send(`P${buffer.byteLength}\r`);
     await uploadChunked(buffer);
-    // Important to allow confirmation text to come from Floopy over serial and be parsed
-    await sleep(250);
+    if (port.firmware === FW_CURRENT) {
+        await waitForStatus();
+    } else {
+        await sleep(250);
+    }
 }
 
 export async function programSram(buffer) {
-    if (buffer.byteLength !== SRAM_SIZE) {
-        throw new Error(`Expected buffer of SRAM size ${SRAM_SIZE}`);
+    if (buffer.byteLength > SRAM_SIZE) {
+        throw new Error(`Save file exceeds SRAM size of ${SRAM_SIZE} bytes`);
     }
     await port.send(`Ps${buffer.byteLength}\r`);
     await uploadChunked(buffer);
-    // Important to allow confirmation text to come from Floopy over serial and be parsed
-    await sleep(250);
+    if (port.firmware === FW_CURRENT) {
+        await waitForStatus();
+    } else {
+        await sleep(250);
+    }
 }
 
 async function uploadChunked(buffer) {
@@ -343,7 +350,6 @@ export function saveBufferToFile(dumpBuffer, filename = 'loopy.bin') {
 
 async function simpleFlash(/** @type File */ file) {
     try {
-
         assertConnected();
         setBusy(true);
 
@@ -484,7 +490,6 @@ $('input.sram-upload')?.addEventListener('change', async ({target, target: {file
     }
 });
 
-
 $('button.flash-inspect')?.addEventListener('click', async () => {
     try {
         assertConnected();
@@ -592,6 +597,7 @@ $('button.cls')?.addEventListener('click', () => {
 window.addEventListener('unhandledrejection', rejectionEvent => {
     showError(rejectionEvent.reason).then();
 });
+
 window.addEventListener('error', errEvent => {
     showError(errEvent.error).then()
 });
