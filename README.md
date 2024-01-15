@@ -4,6 +4,8 @@ This is a flashcart/devcart for the Casio Loopy. See the [User's Guide](https://
 
 Pre-built carts available on [Tindie](https://www.tindie.com/products/partlyhuman/the-floopy-drive/)!
 
+[![Introducing the Floopy Drive (Youtube)](http://img.youtube.com/vi/dMUZkTdj_GA/0.jpg)](http://www.youtube.com/watch?v=dMUZkTdj_GA "Introducing the Floopy Drive")
+
 To help find your way around:
 
 * [pcb/flash-32mbit/](pcb/flash-32mbit/) The star of the show, the Floopy Drive PCB
