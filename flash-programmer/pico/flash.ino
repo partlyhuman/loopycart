@@ -268,6 +268,7 @@ uint32_t flashCartHeaderId() {
 }
 
 uint32_t flashCartHeaderSramSize() {
+  sramDeselect();
   databusReadMode();
   uint32_t sramStart = (flashReadWord(0x10) << 16 | flashReadWord(0x12));
   uint32_t sramEnd = (flashReadWord(0x14) << 16 | flashReadWord(0x16));
@@ -314,7 +315,6 @@ void flashDump(uint32_t starting = 0, uint32_t upto = FLASH_SIZE) {
 // Returns whether programming should continue
 bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expectedBytes) {
   ledColor(0x400040);  // magenta
-  static int retries = 0;
 
   if ((bufLen % 2) == 1) {
     sprintf(S, "WARNING: odd number of bytes %d\r", bufLen);
@@ -326,12 +326,9 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   }
 
   // echo progress at fixed intervals
-  if (addr % 0x10000 == 0) {
+  // if (addr % 0x10000 == 0) {
+  if (addr % 0x08000 == 0) {
     sprintf(S, "%06xh ", addr);
-    if (retries > 0) {
-      sprintf(S, "%S%d retries ", retries);
-      retries = 0;
-    }
     echo_all();
   }
 
@@ -368,6 +365,7 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
     int wordsToWrite = bytesToWrite / 2;
 
     // Check status until we're ready to write more
+    uint retries = 0;
     do {
       flashCommand(addr, 0xe8);
       flashReadStatus();
@@ -385,7 +383,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
         // delayMicroseconds(10);
         continue;
       }
-
 
       // for bigger errors, have a bigger delay before retry
       if (SR(1) == SR(4) == 1) {
@@ -434,15 +431,14 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
   }
 
   if (addr >= expectedBytes) {
-    do {
-      delayMicroseconds(100);
-      flashReadStatus();
-    } while (!SR(7));
-
-    flashCommand(0, CMD_RESET);
+    delay(100);
+    flashStatusCheck(addr, false);
+    flashCommand(zeroWithBank(addr), CMD_RESET);
+    flashCommand(zeroWithBank(addr), 0x50);
 
     sprintf(S, "\r\nWrote %d bytes in %0.2f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all();
+    echo_ok();
 
     busIdle();
     return false;

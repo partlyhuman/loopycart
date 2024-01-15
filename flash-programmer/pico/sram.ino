@@ -147,23 +147,27 @@ void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
   // echo_all("\r\n\r\n", 4);
 }
 
-// TODO make this take an UPTO since SRAM is bigger than needed for all games now
-bool sramErase() {
-  echo_all("Erasing SRAM");
+bool sramErase(uint32_t upto = SRAM_SIZE) {
+  if (upto == SRAM_SIZE) {
+    echo_all("Full erase SRAM");
+  } else {
+    sprintf(S, "Erasing SRAM up to %06xh", upto);
+    echo_all();
+  }
 
   stopwatch = millis();
 
   sramSelect();
   databusWriteMode();
 
-  for (uint32_t addr = 0; addr < SRAM_SIZE; addr++) {
+  for (uint32_t addr = 0; addr < upto; addr++) {
     if (addr % 0x100 == 0) {
       echo_all(".");
     }
     sramWriteByte(addr, 0xff);
   }
 
-  sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", SRAM_SIZE, (millis() - stopwatch) / 1000.0);
+  sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", upto, (millis() - stopwatch) / 1000.0);
   echo_all();
 
   sramDeselect();

@@ -201,7 +201,7 @@ void loop_programming() {
     if (buf[1] == 'r' && buf[2] == '\r') {
       // backup SRAM to file
       uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
-      sprintf(S, "Backing up first %dkb of SRAM to %s\r\n", sramSize / 1024, filename);
+      sprintf(S, "Backing up first %d bytes of SRAM to %s\r\n", sramSize, filename);
       echo_all();
       sramSaveFile(filename, sramSize);
       echo_ok();
@@ -209,7 +209,8 @@ void loop_programming() {
       // restore SRAM from file
       sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
       echo_all();
-      sramLoadFile(filename) || sramErase();
+      uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
+      sramLoadFile(filename) || sramErase(sramSize);
       echo_ok();
     } else if (buf[1] == 'f' && buf[2] == '\r') {
       // Clear filesystem!
@@ -229,7 +230,7 @@ void loop_programming() {
     }
   }
 
-  else {
+  else if (buf[0] != '\r') {
     // Received unknown command OR it's possible we returned to idle state before the sender was done sending?
     echo_all("Unrecognized command\r\n");
     ledColor(0xce4e04);  // orange
