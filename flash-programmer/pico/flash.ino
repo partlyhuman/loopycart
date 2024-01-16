@@ -268,8 +268,6 @@ uint32_t flashCartHeaderSramSize() {
 void flashInspect(uint32_t starting, uint32_t upto) {
   flashCommand(zeroWithBank(starting), 0xff);
   delayMicroseconds(1);
-  busRead();
-  delayMicroseconds(1);
 
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     if (addr % 0x10 == 0) {
@@ -279,13 +277,10 @@ void flashInspect(uint32_t starting, uint32_t upto) {
     sprintf(S, "%04x\t", flashReadWord(addr));
     echo_all();
   }
-
-  busIdle();
 }
 
 void flashDump(uint32_t starting = 0, uint32_t upto = FLASH_SIZE) {
   uint32_t bank = ~0;
-  busRead();
 
   for (uint32_t addr = starting; addr < upto; addr += 2) {
     uint32_t newBank = zeroWithBank(addr);
@@ -299,7 +294,6 @@ void flashDump(uint32_t starting = 0, uint32_t upto = FLASH_SIZE) {
     usb_web.write(word & 0xff);
   }
   usb_web.flush();
-  busIdle();
 }
 
 // Returns whether programming should continue

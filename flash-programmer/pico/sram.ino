@@ -121,9 +121,6 @@ bool sramErase(uint32_t upto = SRAM_SIZE) {
 
   stopwatch = millis();
 
-  setControl(RAMCE);
-  databusWriteMode();
-
   for (uint32_t addr = 0; addr < upto; addr++) {
     if (addr % 0x100 == 0) {
       echo_all(".");
