@@ -5,7 +5,7 @@ import ERROR_CONNECT from 'bundle-text:./data/error-cant-connect.html';
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = '16720c2';
+const FW_CURRENT = '8ab2047';
 
 const U32_MAX = 0xffffffff;
 const SERIAL_BUFFER_SIZE = 64;
