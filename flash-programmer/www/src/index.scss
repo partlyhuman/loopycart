@@ -14,24 +14,29 @@ html, body {
   margin: 0;
   padding: 0;
   overscroll-behavior: none;
+  user-select: none;
+}
+
+.logger, .dialog .body {
+  user-select: text !important; // all works too, but kind of annoying if that's not what you want to do
 }
 
 .hidden {
   display: none !important;
 }
 
-.noclick {
+.noclick, img {
   pointer-events: none;
 }
 
 a {
-  text-decoration: none;
-  border-bottom: 1px solid hotpink;
+  text-decoration: underline;
+  text-decoration-color: hotpink;
   color: inherit;
+  transition: color 0.1s linear;
 
-  &:hover {
+  &:hover, &:active {
     color: hotpink;
-    text-decoration: none;
   }
 }
 
@@ -174,6 +179,10 @@ main {
   * {
     flex: 1;
   }
+}
+
+.download-firmware {
+  text-align: right;
 }
 
 .progressbar {
