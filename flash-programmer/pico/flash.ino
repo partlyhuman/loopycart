@@ -68,7 +68,6 @@ void flashCommand(uint32_t addr, uint16_t data) {
   NOP;
   NOP;
 
-  // Don't forget to switch data bus mode
   writeWord(addr, data);
 
   busWrite();
@@ -88,7 +87,18 @@ void flashCommand(uint32_t addr, uint16_t data) {
   busIdle();
 }
 
-// TODO involve STS pin now that we have access to it
+void flashReadStatus() {
+  busRead();
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  NOP;
+  SRD = readByte();
+  busIdle();
+}
+
 // returns TRUE if OK
 bool flashStatusCheck(uint32_t addr = 0, bool clearIfError = true) {
   bool ok = true;
@@ -125,6 +135,13 @@ bool flashStatusCheck(uint32_t addr = 0, bool clearIfError = true) {
   return ok;
 }
 
+void flashWaitUntilIdle(uint us = 10) {
+  do {
+    delayMicroseconds(us);
+    flashReadStatus();
+  } while (!SR(7));
+}
+
 // Major functions
 
 void flashEraseBank(int bank) {
@@ -134,10 +151,7 @@ void flashEraseBank(int bank) {
 
   delayMicroseconds(100);
   flashCommand(bankAddress, 0x70);
-  do {
-    delayMicroseconds(100);
-    flashReadStatus();
-  } while (SR(7) == 0);
+  flashWaitUntilIdle();
   delayMicroseconds(100);
 
   delayMicroseconds(100);
@@ -193,11 +207,7 @@ bool flashEraseBlock(uint32_t startAddr) {
 
   flashCommand(startAddr, 0x20);
   flashCommand(startAddr, 0xd0);
-  SRD = 0;
-  do {
-    delayMicroseconds(100);
-    flashReadStatus();
-  } while (SR(7) == 0);
+  flashWaitUntilIdle();
 
   return flashStatusCheck();
 }
@@ -205,11 +215,7 @@ bool flashEraseBlock(uint32_t startAddr) {
 void flashClearLocks() {
   flashCommand(0, 0x60);
   flashCommand(0, 0xd0);
-
-  do {
-    flashReadStatus();
-    delayMicroseconds(10);
-  } while (!SR(7));
+  flashWaitUntilIdle();
 
   if (flashStatusCheck()) {
     echo_all("Lock bits cleared successfully\r");
@@ -243,33 +249,17 @@ void flashChipId() {
   echo_all();
 }
 
-void flashReadStatus() {
-  busRead();
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  NOP;
-  SRD = readByte();
-  busIdle();
-}
-
 // Does the cart start with 0E00 0080 like a loopy cart?
 bool flashCartHeaderCheck() {
-  databusReadMode();
   return (flashReadWord(0x0) == 0x0e00 && flashReadWord(0x2) == 0x0080);
 }
 
 // What's the internal CRC32 in the cart header? Use this as a cart ID.
 uint32_t flashCartHeaderId() {
-  databusReadMode();
   return (flashReadWord(0x8) << 16) | flashReadWord(0xA);
 }
 
 uint32_t flashCartHeaderSramSize() {
-  sramDeselect();
-  databusReadMode();
   uint32_t sramStart = (flashReadWord(0x10) << 16 | flashReadWord(0x12));
   uint32_t sramEnd = (flashReadWord(0x14) << 16 | flashReadWord(0x16));
   return sramEnd - sramStart + 1;
@@ -438,9 +428,6 @@ bool flashWriteBuffer(uint8_t *buf, size_t bufLen, uint32_t &addr, uint32_t expe
 
     sprintf(S, "\r\nWrote %d bytes in %0.2f sec using multibyte programming\r", addr * 2, (millis() - stopwatch) / 1000.0);
     echo_all();
-    echo_ok();
-
-    busIdle();
     return false;
   }
 

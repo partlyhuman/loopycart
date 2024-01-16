@@ -1,17 +1,11 @@
 #define SRAM_ADDRBITS 17  // R7 graduated to 1MBit/128KB SRAM
 const uint32_t SRAM_SIZE = 1 << SRAM_ADDRBITS;
 
-inline void sramSelect() {
-  setControl(RAMCE);
-}
-
-inline void sramDeselect() {
-  setControl(ROMCE);
-}
-
 uint8_t sramReadByte(uint32_t addr) {
-  // braindead 1 cycle read (address controlled)
+  setControl(RAMCE & OE);
   databusReadMode();
+
+  // braindead 1 cycle read (address controlled)
   setAddress(addr);
   // tAA | Address access time | 55ns
   NOP;
@@ -27,6 +21,7 @@ uint8_t sramReadByte(uint32_t addr) {
 }
 
 void sramWriteByte(uint32_t addr, uint8_t byte) {
+  setControl(RAMCE);
   // Write Cycle 1, Note 4, p6 - During this period, I/O pins are in the output state, and input signals must not be applied.
   databusReadMode();
 
@@ -49,19 +44,11 @@ void sramWriteByte(uint32_t addr, uint8_t byte) {
 void sramSaveFile(const char* filename, uint32_t saveSize = SRAM_SIZE) {
   File file = LittleFS.open(filename, "w");
 
-  sramSelect();
-  databusReadMode();
-
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
-  setControl(RAMCE & OE);
-
   for (uint32_t addr = 0; addr < saveSize; addr++) {
     uint8_t byte = sramReadByte(addr);
     file.write(&byte, 1);
   }
-
-  databusWriteMode();
-  sramDeselect();
 
   file.flush();
   file.close();
@@ -86,9 +73,6 @@ bool sramLoadFile(const char* filename) {
     echo_all();
   }
 
-  sramSelect();
-  databusWriteMode();
-
   // read 1kb at a time?
   const size_t CHUNK_SIZE = 1 << 10;
   uint8_t buf[CHUNK_SIZE];
@@ -102,20 +86,13 @@ bool sramLoadFile(const char* filename) {
     }
   }
 
-  sramDeselect();
-
   file.close();
   return true;
 }
 
 
 void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
-  sramSelect();
-  databusReadMode();
-
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
-  setControl(RAMCE & OE);
-
   for (uint32_t addr = starting; addr < upto; addr++) {
     if (addr % 0x10 == 0) {
       sprintf(S, "\r%06xh\t\t", addr);
@@ -124,27 +101,14 @@ void sramInspect(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
     sprintf(S, "%02x\t", sramReadByte(addr));
     echo_all();
   }
-
-  sramDeselect();
-  databusWriteMode();
-  // echo_all("\r\n\r\n", 4);
 }
 
 void sramDump(uint32_t starting = 0, uint32_t upto = SRAM_SIZE) {
-  sramSelect();
-  databusReadMode();
-
   // Address controlled Read Cycle 1, p5, no control necessary just set an address and read
-  setControl(RAMCE & OE);
-
   for (uint32_t addr = starting; addr < upto; addr++) {
     uint8_t byte = sramReadByte(addr);
     usb_web.write(&byte, 1);
   }
-
-  sramDeselect();
-  databusWriteMode();
-  // echo_all("\r\n\r\n", 4);
 }
 
 bool sramErase(uint32_t upto = SRAM_SIZE) {
@@ -157,7 +121,7 @@ bool sramErase(uint32_t upto = SRAM_SIZE) {
 
   stopwatch = millis();
 
-  sramSelect();
+  setControl(RAMCE);
   databusWriteMode();
 
   for (uint32_t addr = 0; addr < upto; addr++) {
@@ -169,8 +133,6 @@ bool sramErase(uint32_t upto = SRAM_SIZE) {
 
   sprintf(S, "\r\nErased %d bytes of SRAM in %0.2f sec!\r\n", upto, (millis() - stopwatch) / 1000.0);
   echo_all();
-
-  sramDeselect();
   return true;
 }
 
@@ -185,14 +147,9 @@ bool sramWriteBuffer(uint8_t* buf, size_t bufLen, uint32_t& addr, uint32_t expec
     }
   }
 
-
   if (addr >= expectedBytes) {
-    sramDeselect();
-
     sprintf(S, "\r\nWrote %d bytes in %0.2f sec\r\n", addr, (millis() - stopwatch) / 1000.0);
     echo_all();
-    echo_ok();
-
     return false;
   }
   return true;

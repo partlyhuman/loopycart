@@ -5,7 +5,7 @@ import ERROR_CONNECT from 'bundle-text:./data/error-cant-connect.html';
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
-const FW_CURRENT = '82c4a64';
+const FW_CURRENT = '16720c2';
 
 const U32_MAX = 0xffffffff;
 const SERIAL_BUFFER_SIZE = 64;
@@ -16,7 +16,7 @@ const TRUNCATE_DUMPED_SRAM = true;
 
 const textDecoder = new TextDecoder();
 /** @type Port */
-let port;
+let floopy;
 
 export const $ = document.querySelector.bind(document);
 const $body = $('body');
@@ -34,7 +34,7 @@ export function assert(b, message = "Unexpected state") {
 }
 
 function assertConnected() {
-    assert(port?.isOpen === true, `Not connected. Please connect a Floopy Drive and use the Connect button.`);
+    assert(floopy?.isOpen === true, `Not connected. Please connect a Floopy Drive and use the Connect button.`);
 }
 
 export function sleep(ms) {
@@ -84,6 +84,11 @@ function addLine(text) {
 }
 
 let currentReceiverLine;
+
+function cls() {
+    $lines.innerHTML = '';
+    currentReceiverLine = null;
+}
 
 export function log(text, copyToConsole = false) {
     const lines = text.split('\r');
@@ -163,7 +168,7 @@ export async function commandWithProgress(command, stepInfo = '', indefinite = t
     try {
         setProgress(indefinite || 0);
         setStatus(stepInfo);
-        await port.send(command);
+        await floopy.send(command);
         await waitForStatus();
         setProgress();
         setStatus('Done');
@@ -174,23 +179,23 @@ export async function commandWithProgress(command, stepInfo = '', indefinite = t
 
 async function connect() {
     try {
-        await port.connect();
+        await floopy.connect();
         setStatus('Connected');
         $connectButton.classList.remove('default');
 
         // Parse initial connection message
-        port.onReceive = (data) => {
+        floopy.onReceive = (data) => {
             const text = textDecoder.decode(data);
             const match = text.match(/^!FW ([A-Za-z0-9]+)/);
             const fw = match?.[1];
             if (fw !== FW_CURRENT) {
                 $('.download-firmware').classList.remove('hidden');
             }
-            port.firmware = fw;
-            port.onReceive = serialEcho;
+            floopy.firmware = fw;
+            floopy.onReceive = serialEcho;
             serialEcho(data);
         };
-        port.onDisconnect = () => {
+        floopy.onDisconnect = () => {
             setStatus('Disconnected.');
             $connectButton.classList.add('default');
         };
@@ -200,18 +205,18 @@ async function connect() {
 }
 
 async function disconnect() {
-    await port.disconnect();
+    await floopy.disconnect();
     setStatus('Not connected');
     $connectButton.classList.add('default');
-    port = null;
+    floopy = null;
 }
 
 $connectButton?.addEventListener('click', async () => {
-    if (port) {
+    if (floopy) {
         await disconnect();
     } else {
         try {
-            port = await Serial.requestPort();
+            floopy = await Serial.requestPort();
             await connect();
         } catch (error) {
             showError(ERROR_CONNECT).then();
@@ -232,7 +237,7 @@ async function usbInit() {
         setStatus(`Floopy Drive not found. Connect drive and press the Connect button when notification appears.`);
     } else {
         setStatus('Connecting...');
-        port = ports[0];
+        floopy = ports[0];
         await connect();
     }
 }
@@ -253,7 +258,7 @@ window.addEventListener('beforeunload', event => {
 
 // Attempt to disconnect cleanly when navigating away
 window.addEventListener('unload', async () => {
-    if (port?.isOpen) {
+    if (floopy?.isOpen) {
         // This is never going to actually complete, but it's a nice idea
         await disconnect();
     }
@@ -269,14 +274,14 @@ export function download(bytesToDownload, serialCommand) {
         console.warn('Expected download size is not modulo serial buffer size');
     }
     return new Promise((resolve, reject) => {
-        if (!port?.isOpen) {
+        if (!floopy?.isOpen) {
             reject('Not connected');
         }
         const dumpBuffer = new ArrayBuffer(bytesToDownload);
         setStatus(`Dumping ${bytesToDownload} bytes...`);
         let addrBytes = 0;
 
-        port.onReceive = (/** @type DataView */ data) => {
+        floopy.onReceive = (/** @type DataView */ data) => {
             const dumpView = new Uint8Array(dumpBuffer, addrBytes, data.byteLength);
             const packetView = new Uint8Array(data.buffer, 0, data.buffer.byteLength);
             console.assert(ArrayBuffer.isView(dumpView), 'Expected dumpView to be a view into the shared dumpBuffer');
@@ -288,21 +293,25 @@ export function download(bytesToDownload, serialCommand) {
             setProgress(addrBytes / bytesToDownload);
 
             if (addrBytes >= dumpBuffer.byteLength) {
-                port.onReceive = serialEcho;
+                floopy.onReceive = serialEcho;
                 setProgress(0);
                 setStatus('Done');
                 resolve(dumpBuffer);
             }
         }
 
-        port.send(serialCommand).then();
+        floopy.send(serialCommand).then();
     });
 }
 
 export async function programFlash(buffer) {
-    await port.send(`P${buffer.byteLength}\r`);
+    if (buffer.byteLength > FLASH_SIZE) {
+        throw new Error(`ROM exceeds Flash size of ${FLASH_SIZE} bytes`);
+    }
+    // TODO pad to ensure modulo serial buffer size
+    await floopy.send(`P${buffer.byteLength}\r`);
     await uploadChunked(buffer);
-    if (port.firmware === FW_CURRENT) {
+    if (floopy.firmware === FW_CURRENT) {
         await waitForStatus();
     } else {
         await sleep(250);
@@ -313,9 +322,10 @@ export async function programSram(buffer) {
     if (buffer.byteLength > SRAM_SIZE) {
         throw new Error(`Save file exceeds SRAM size of ${SRAM_SIZE} bytes`);
     }
-    await port.send(`Ps${buffer.byteLength}\r`);
+    // TODO pad to ensure modulo serial buffer size
+    await floopy.send(`Ps${buffer.byteLength}\r`);
     await uploadChunked(buffer);
-    if (port.firmware === FW_CURRENT) {
+    if (floopy.firmware === FW_CURRENT) {
         await waitForStatus();
     } else {
         await sleep(250);
@@ -329,7 +339,7 @@ async function uploadChunked(buffer) {
             const chunk = new Uint8Array(buffer.buffer, addr, Math.min(UPLOAD_CHUNK_SIZE, buffer.byteLength - addr));
             addr += chunk.byteLength;
 
-            const {bytesWritten, status} = await port.send(chunk);
+            const {bytesWritten, status} = await floopy.send(chunk);
             if (status !== "ok") throw new Error(`${status}`);
             // console.log(`${status} writing ${block.byteLength} byte block starting at ${block.byteOffset}, ${bytesWritten} actually written`);
         }
@@ -479,7 +489,8 @@ $('input.sram-upload')?.addEventListener('change', async ({target, target: {file
 
         setStatus(`Programming ${buffer.byteLength} bytes of SRAM...`);
 
-        await port.send(`Ps${buffer.byteLength}\r`);
+        // TODO pad to ensure modulo serial buffer size
+        await floopy.send(`Ps${buffer.byteLength}\r`);
         await uploadChunked(buffer);
         setProgress();
         setStatus('Done');
@@ -508,7 +519,7 @@ $('button.flash-inspect')?.addEventListener('click', async () => {
             setStatus('Contents not matched in cart database');
         }
 
-        await port.send('I\r');
+        await floopy.send('I\r');
     } finally {
         setBusy(false);
     }
@@ -577,7 +588,7 @@ $('button.sram-erase')?.addEventListener('click', async () => {
 $('.device-nickname button')?.addEventListener('click', async () => {
     assertConnected();
     const nick = $('.device-nickname input').value;
-    await port.send(`N${nick}\r`);
+    await floopy.send(`N${nick}\r`);
 });
 
 $('form.manual-command')?.addEventListener('submit', async (event) => {
@@ -586,12 +597,12 @@ $('form.manual-command')?.addEventListener('submit', async (event) => {
     const $input = $('.manual-command input');
     const cmd = `${$input.value.toUpperCase().trim()}\r`;
     $input.value = '';
-    await port.send(cmd);
+    await floopy.send(cmd);
     return false;
 });
 
 $('button.cls')?.addEventListener('click', () => {
-    $('#receiver_lines').innerHTML = '';
+    cls();
 });
 
 window.addEventListener('unhandledrejection', rejectionEvent => {

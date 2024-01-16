@@ -6,6 +6,12 @@
 
 static int bootErrors = 0;
 
+void onSuccess(bool echoOk = true) {
+  if (echoOk) echo_ok();
+  busIdle();
+  ledColor(0);
+}
+
 void loop_programming() {
   static uint8_t buf[USB_BUFSIZE];
   static bool isProgrammingFlash = false;
@@ -34,38 +40,42 @@ void loop_programming() {
 
   if (isProgrammingFlash) {
     isProgrammingFlash = flashWriteBuffer(buf, bufLen, addr, totalBytes);
-    if (!isProgrammingFlash) ledColor(0);
+    if (!isProgrammingFlash) onSuccess();
     return;
   } else if (isProgrammingSram) {
     isProgrammingSram = sramWriteBuffer(buf, bufLen, addr, totalBytes);
-    if (!isProgrammingSram) ledColor(0);
+    if (!isProgrammingSram) onSuccess();
     return;
   }
 
   else if (buf[0] == 'E') {
     // ERASE COMMAND
-    ledColor(BLUE);
     if (buf[1] == '\r') {
+      ledColor(BLUE);
       flashEraseAll();
       flashCommand(0, CMD_RESET);
-      echo_ok();
+      onSuccess();
     } else if (buf[1] == 's' && buf[2] == '\r') {
+      ledColor(BLUE);
       sramErase();
-      echo_ok();
+      onSuccess();
     } else if (buf[1] == '0' && buf[2] == '\r') {
       // DEPRECATED
+      ledColor(BLUE);
       flashEraseBank(0);
       flashCommand(0, CMD_RESET);
-      echo_ok();
+      onSuccess();
     } else if (buf[1] == '1' && buf[2] == '\r') {
       // DEPRECATED
+      ledColor(BLUE);
       flashEraseBank(1);
       flashCommand(0, CMD_RESET);
-      echo_ok();
+      onSuccess();
     } else if (sscanf((char *)buf, "E%ld\r", &totalBytes) && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
       stopwatch = millis();
       sprintf(S, "Erasing %d bytes of flash up to %06xh\r\n", totalBytes, totalBytes);
       echo_all();
+      ledColor(BLUE);
       for (addr = 0; addr < totalBytes; addr += FLASH_BLOCK_SIZE) {
         sprintf(S, "%06xh ", addr);
         echo_all();
@@ -94,9 +104,8 @@ void loop_programming() {
       // }
       sprintf(S, "\r\nErased %d bytes in %0.2f sec using block erasing\r\n", addr, (millis() - stopwatch) / 1000.0);
       echo_all();
-      echo_ok();
+      onSuccess();
     }
-    ledColor(0);
   }
 
   else if (buf[0] == 'I' && buf[1] == '\r') {
@@ -131,8 +140,7 @@ void loop_programming() {
     LittleFS.info(info);
     sprintf(S, "%d/%d bytes used, %0.0f%% full\r\n", info.usedBytes, info.totalBytes, 100.0 * (info.usedBytes + 0.0) / info.totalBytes);
     echo_all();
-
-    busIdle();
+    onSuccess();
   }
 
   else if (buf[0] == 'D') {
@@ -142,7 +150,7 @@ void loop_programming() {
       if (addr > 0 && totalBytes > 0 && totalBytes <= FLASH_SIZE) {
         ledColor(BLUE);
         flashDump(addr, addr + totalBytes);
-        ledColor(0);
+        onSuccess(false);
       } else {
         ledColor(RED);
       }
@@ -151,12 +159,13 @@ void loop_programming() {
       if (totalBytes > 0 && totalBytes <= FLASH_SIZE) {
         ledColor(BLUE);
         flashDump(0, totalBytes);
-        ledColor(0);
+        onSuccess(false);
       } else {
         ledColor(RED);
       }
     } else if (buf[1] == 's' && buf[2] == '\r') {
       sramDump();
+      onSuccess(false);
     }
   }
 
@@ -169,7 +178,6 @@ void loop_programming() {
       isProgrammingFlash = true;
       addr = 0;
       stopwatch = millis();
-      busIdle();
       ledColor(BLUE);
     } else if (1 == sscanf((char *)buf, "Ps%ld\r", &totalBytes) && totalBytes > 0 && totalBytes <= SRAM_SIZE) {
       // program SRAM followed by expected # of bytes
@@ -178,17 +186,12 @@ void loop_programming() {
       isProgrammingSram = true;
       addr = 0;
       stopwatch = millis();
-      databusWriteMode();
-      sramSelect();
       ledColor(BLUE);
-    } else {
-      ledColor(RED);
     }
   }
 
   else if (buf[0] == 'S') {
     // SRAM BACKUP & RESTORE FROM FILESYSTEM
-    ledColor(BLUE);
 
     // ID the header
     uint32_t cartId = flashCartHeaderId();
@@ -203,30 +206,33 @@ void loop_programming() {
       uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
       sprintf(S, "Backing up first %d bytes of SRAM to %s\r\n", sramSize, filename);
       echo_all();
+      ledColor(BLUE);
       sramSaveFile(filename, sramSize);
-      echo_ok();
+      onSuccess();
     } else if (buf[1] == 'w' && buf[2] == '\r') {
       // restore SRAM from file
       sprintf(S, "Restoring SRAM contents from %s\r\n", filename);
       echo_all();
       uint32_t sramSize = min(flashCartHeaderSramSize(), SRAM_SIZE);
+      ledColor(BLUE);
       sramLoadFile(filename) || sramErase(sramSize);
-      echo_ok();
+      onSuccess();
     } else if (buf[1] == 'f' && buf[2] == '\r') {
       // Clear filesystem!
       echo_all("Clearing all save states stored on Floopy Drive!!\r\n");
+      ledColor(BLUE);
       LittleFS.format();
-      echo_ok();
+      onSuccess();
     }
-
-    ledColor(0);
   }
 
   else if (buf[0] == 'N') {
     if (sscanf((char *)buf, "N%[^\r]\r", S) && strlen(S) > 0) {
       setNickname(S);
+      onSuccess();
     } else {
       setNickname(NULL);
+      onSuccess();
     }
   }
 
