@@ -26,7 +26,6 @@ const $statusDisplay = $('#progress-text');
 const $progressInner = $('#progress-inner');
 const $progressOuter = $('#progress-outer');
 
-
 export function assert(b, message = "Unexpected state") {
     if (b !== true) {
         throw new Error(message);
@@ -402,11 +401,12 @@ async function simpleFlash(/** @type File */ file) {
 
         // Restore old save or format SRAM if no existing backup
         if (isDifferentGame) {
-            // TODO could wipe only needed space
             await commandWithProgress('Sw\r', 'Restoring previous save');
         }
 
-        setStatus('Completed! You may disconnect your Floopy Drive.');
+        setStatus(`<span class="pink">Success! <span class="heart-icon"></span> You may disconnect your Floopy Drive or flash another game.</span>`);
+        $('audio#ding')?.play();
+        $drop.classList.add('success');
     } finally {
         setBusy(false);
     }

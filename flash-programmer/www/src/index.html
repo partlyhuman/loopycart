@@ -28,14 +28,14 @@
             and
             <a target="_blank" href="https://github.com/partlyhuman/loopycart/wiki#updating-firmware">update</a>
         </span>
-        <!--        <progress id="progress" value="0" max="1"></progress>-->
     </div>
 
     <div>
-        <div role="progressbar" id="progress-outer" class="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80">
+        <div role="progressbar" id="progress-outer" class="progressbar">
             <div id="progress-inner" style="width: 0"></div>
         </div>
         <div id="progress-text" class="progress-text"></div>
+        <audio id="ding" preload="auto" src="assets/animeding.ogg"></audio>
     </div>
 
     <div class="dump-file-link"></div>
@@ -43,7 +43,7 @@
     <div class="simple-mode">
         <input class="flash-upload-simple hidden" type="file">
         <div class="drop">
-            <h2>Drop a Loopy ROM here!</h2>
+            <h2 class="drop-headline">Drop a Loopy ROM here!</h2>
             <h3 class="drop-encourage">Yes... good... right here...</h3>
         </div>
     </div>

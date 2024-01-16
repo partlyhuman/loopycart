@@ -40,6 +40,10 @@ a {
   }
 }
 
+.pink {
+  color: hotpink;
+}
+
 h1, h2, h3, h4, h5, .loopyfont, .h1 {
   font-family: 'Loopy', serif;
   text-transform: uppercase;
@@ -201,7 +205,27 @@ main {
 #progress-text {
   width: 100%;
   text-align: center;
-  font-size: small;
+}
+
+.heart-icon {
+  display: inline-block;
+  vertical-align: middle;
+  width: 32px;
+  height: 32px;
+  background-size: contain;
+  background: url('./assets/favicon-32x32.png') no-repeat;
+}
+
+.spin {
+  @keyframes spin {
+    from {
+      transform: rotateY(0deg);
+    }
+    to {
+      transform: rotateY(360deg);
+    }
+  }
+  animation: spin 3s linear infinite;
 }
 
 .logger-controls {
