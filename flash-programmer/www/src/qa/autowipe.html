@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Loopy programmer</title>
+    <link rel="stylesheet" href="../index.scss"/>
+</head>
+<body class="background">
+
+<main>
+    <div class="connect-container">
+        <button id="connect" class="default ignore-busy">
+            <img class="icon disconnected" src="../assets/icon-usbc-50.png" width="50" height="50" alt="">
+            <span class="label disconnected">Connect</span>
+            <img class="icon connected" src="../assets/icon-eject-30.png" width="30" height="30" alt="">
+            <span class="label connected">Disconnect</span>
+        </button>
+        <img class="logo" src="../assets/floopydrive.svg" alt="Floopy Drive!">
+        <span class="download-firmware hidden">
+            New firmware available!<br>
+            Please
+            <a href="https://github.com/partlyhuman/loopycart/raw/main/flash-programmer/pico/build/rp2040.rp2040.waveshare_rp2040_zero/pico.ino.uf2">download</a>
+            and
+            <a target="_blank" href="https://github.com/partlyhuman/loopycart/wiki#updating-firmware">update</a>
+        </span>
+    </div>
+
+    <div>
+        <div role="progressbar" id="progress-outer" class="progressbar">
+            <div id="progress-inner" style="width: 0"></div>
+        </div>
+        <div id="progress-text" class="progress-text"></div>
+        <audio id="ding" preload="auto" src="../assets/animeding.mp3"></audio>
+    </div>
+
+    <div class="logger" id="receiver_lines">
+    </div>
+
+    <div class="row">
+        <button class="cls button ignore-busy">Clear</button>
+        <div>
+            🔗 <a target="_blank" href="https://github.com/partlyhuman/loopycart/wiki">User Guide</a>&nbsp;&nbsp;
+        </div>
+    </div>
+</main>
+
+<div class="window glass dialog" role="dialog" id="dialog-error" aria-labelledby="dialog-title">
+    <div class="title-bar">
+        <div class="title-bar-text" id="dialog-title">Error</div>
+        <div class="title-bar-controls">
+            <button data-result="false" aria-label="Close"></button>
+        </div>
+    </div>
+    <div class="body window-body has-space">
+    </div>
+    <footer style="text-align: right">
+        <button class="hidden" data-result="false">Cancel</button>
+        <button class="default" data-result="true">OK</button>
+    </footer>
+</div>
+
+<script type="module" src="autowipe.js"></script>
+
+</body>
+</html>

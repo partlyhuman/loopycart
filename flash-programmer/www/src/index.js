@@ -32,7 +32,7 @@ export function assert(b, message = "Unexpected state") {
     }
 }
 
-function assertConnected() {
+export function assertConnected() {
     assert(floopy?.isOpen === true, `Not connected. Please connect a Floopy Drive and use the Connect button.`);
 }
 
@@ -176,7 +176,7 @@ export async function commandWithProgress(command, stepInfo = '', indefinite = t
     }
 }
 
-async function connect() {
+export async function connect() {
     try {
         await floopy.connect();
         setStatus('Connected');
@@ -203,7 +203,7 @@ async function connect() {
     }
 }
 
-async function disconnect() {
+export async function disconnect() {
     await floopy.disconnect();
     setStatus('Not connected');
     $connectButton.classList.add('default');

@@ -1,4 +1,4 @@
-import {$, commandWithProgress, download, log, programFlash, programSram, sleep, SRAM_SIZE} from './index';
+import {$, commandWithProgress, download, log, programFlash, programSram, sleep, SRAM_SIZE} from '../index';
 
 const BLOCK_SIZE = 32 * 1024;
 const PASS = ' ✅';
@@ -36,14 +36,14 @@ function assertEqual(in1, in2) {
 }
 
 
-async function assertFlashFirstBlockBlank() {
+export async function assertFlashFirstBlockBlank() {
     assertEqual(
         await download(BLOCK_SIZE, `D${BLOCK_SIZE}\r`),
         fillWith(BLOCK_SIZE, 0xff)
     );
 }
 
-async function assertSramBlank() {
+export async function assertSramBlank() {
     assertEqual(
         await download(SRAM_SIZE, `Ds\r`),
         fillWith(SRAM_SIZE, 0xff)
@@ -70,12 +70,12 @@ async function assertSramEraseAndWrite() {
     assertEqual(expected, actual);
 }
 
-$('input.qa-flash').addEventListener('change', async ({target: {files}}) => {
+$('input.qa-flash')?.addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) return;
     expectedFlashBuffer = new Uint8Array(await files[0].arrayBuffer());
 });
 
-$('input.qa-sram').addEventListener('change', async ({target: {files}}) => {
+$('input.qa-sram')?.addEventListener('change', async ({target: {files}}) => {
     if (!files || files.length === 0) return;
     expectedSramBuffer = new Uint8Array(await files[0].arrayBuffer());
 });
@@ -96,7 +96,7 @@ async function runTest(name, promise, target) {
  * Test 0 - on building - Quickly verify the flash is blank, all 0xff
  * Soldering errors can result in non-ff. Passing this test doesn't mean everything's ok.
  */
-$('button.qa-blank').addEventListener('click', async ({target}) => {
+$('button.qa-blank')?.addEventListener('click', async ({target}) => {
     await runTest('Asserting first block of flash blank', assertFlashFirstBlockBlank(), target);
 });
 
@@ -104,7 +104,7 @@ $('button.qa-blank').addEventListener('click', async ({target}) => {
  * Test 1 - Quickly fill a block with random stuff and see if it can be read back
  * Quickly determines if flash cannot read and write.
  */
-$('button.qa-quick-flash').addEventListener('click', async ({target}) => {
+$('button.qa-quick-flash')?.addEventListener('click', async ({target}) => {
     await runTest('Erase/write/verify flash with one block of random', assertFlashEraseAndWrite(BLOCK_SIZE), target);
 });
 
@@ -112,11 +112,11 @@ $('button.qa-quick-flash').addEventListener('click', async ({target}) => {
  * Test 2 - Fill SRAM with random stuff and see if it can be read back.
  * Ensures SRAM can read and write.
  */
-$('button.qa-sram').addEventListener('click', async ({target}) => {
+$('button.qa-sram')?.addEventListener('click', async ({target}) => {
     await runTest('Write/verify SRAM with random', assertSramEraseAndWrite(BLOCK_SIZE), target);
 });
 
-$('button.qa-program-both').addEventListener('click', async ({target}) => {
+$('button.qa-program-both')?.addEventListener('click', async ({target}) => {
     if (!expectedFlashBuffer) {
         console.error('Set expected file first');
         return;
@@ -133,7 +133,7 @@ $('button.qa-program-both').addEventListener('click', async ({target}) => {
  * Test 3 - Go program it with a game, test on console. Come back. Now verify its contents are what you expect.
  * Running on console is a strong signal that it's okay. This is stronger.
  */
-$('button.qa-verify-flash').addEventListener('click', async ({target}) => {
+$('button.qa-verify-flash')?.addEventListener('click', async ({target}) => {
     // const bank = 0x200000;
     // const bytesToDownload = 1024 * 640;
     // const actualBuffer = await download(bytesToDownload, `D${bank - bytesToDownload / 2}/${bytesToDownload}\r`);
@@ -152,7 +152,7 @@ $('button.qa-verify-flash').addEventListener('click', async ({target}) => {
 /**
  * Test 4 - Ensure SRAM maintained the expected contents surviving unpowered.
  */
-$('button.qa-verify-sram').addEventListener('click', async ({target}) => {
+$('button.qa-verify-sram')?.addEventListener('click', async ({target}) => {
     if (!expectedSramBuffer) {
         console.error('Set expected file first');
         return;
@@ -167,14 +167,23 @@ $('button.qa-verify-sram').addEventListener('click', async ({target}) => {
  * Tests complete - format everything. Verify it's clear as expected.
  * We already tested erasing, but this final check also prepares the floopy drive for shipping.
  */
-$('button.qa-wipe').addEventListener('click', async ({target}) => {
-    await commandWithProgress(`E\r`, 'Erasing Flash');
-    await sleep(100);
-    await commandWithProgress(`Es\r`, 'Erasing SRAM');
-    await sleep(100);
-    await commandWithProgress(`Sf\r`, 'Formatting Filesystem');
-    await assertFlashFirstBlockBlank();
-    await assertSramBlank();
-    log('WIPED!', true);
+$('button.qa-wipe')?.addEventListener('click', async ({target}) => {
+    await qaFullWipe();
     target.innerText += PASS;
 });
+
+export async function qaFullWipe(verify = false) {
+    await commandWithProgress(`E\r`, 'Erasing Flash');
+    await sleep(50);
+    await commandWithProgress(`Es\r`, 'Erasing SRAM');
+    await sleep(50);
+    await commandWithProgress(`Sf\r`, 'Formatting Filesystem');
+    if (verify) {
+        await sleep(50);
+        await assertFlashFirstBlockBlank();
+        await sleep(50);
+        await assertSramBlank();
+        await sleep(50);
+    }
+    log('WIPED!\n\n', true);
+}

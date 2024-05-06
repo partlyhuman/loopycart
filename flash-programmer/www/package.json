@@ -5,7 +5,8 @@
   "scripts": {
     "start": "parcel src/index.html",
     "build": "parcel build src/index.html",
-    "qa": "parcel src/qa.html"
+    "qa": "parcel src/qa/qa.html",
+    "qa-wipe": "parcel src/qa/autowipe.html"
   },
   "repository": {
     "type": "git",
