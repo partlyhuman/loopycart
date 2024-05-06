@@ -2,7 +2,7 @@
 
 This is a flashcart/devcart for the Casio Loopy. See the [User's Guide](https://github.com/partlyhuman/loopycart/wiki)!
 
-Pre-built carts available on [Tindie](https://www.tindie.com/products/partlyhuman/the-floopy-drive/)!
+Pre-built carts available on [loopy.land/shop](https://loopy.land/shop)!
 
 [![Introducing the Floopy Drive (Youtube)](http://img.youtube.com/vi/dMUZkTdj_GA/0.jpg)](http://www.youtube.com/watch?v=dMUZkTdj_GA "Introducing the Floopy Drive")
 
