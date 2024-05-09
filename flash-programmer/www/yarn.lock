@@ -535,6 +535,11 @@
     "@parcel/utils" "2.8.3"
     nullthrows "^1.1.1"
 
+"@parcel/service-worker@^2.12.0":
+  version "2.12.0"
+  resolved "https://registry.yarnpkg.com/@parcel/service-worker/-/service-worker-2.12.0.tgz#aab06624fcbc776abb48f23490001fd5d0ab78e5"
+  integrity sha512-ySRbSQhsEZZTfjOEPoYsP+tKSolf9qBj1CE1MYI5Uxac4RUsT4Mdk/GryASmxu7H/r1ktW6EmePIlf3nrUKUug==
+
 "@parcel/source-map@^2.1.1":
   version "2.1.1"
   resolved "https://registry.npmjs.org/@parcel/source-map/-/source-map-2.1.1.tgz"

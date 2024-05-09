@@ -1,7 +1,10 @@
+import PACKAGE from '../package.json';
 import {Serial} from './serial';
 import {ADDR_HEADER_END, getCartDataFromHeader, lookupCartDatabase, parseRom, trimEnd} from './cart';
 import ERROR_WEBUSB from 'bundle-text:./data/error-webusb.html';
 import ERROR_CONNECT from 'bundle-text:./data/error-cant-connect.html';
+
+console.log(`%c💞Floopy Drive interface ${PACKAGE.version}`, 'font-size: 200%');
 
 // Warn if this doesn't match. Inserting this could be automated but that would require lockstep commits
 // Something better could be done with build automation that builds Arduino and web
