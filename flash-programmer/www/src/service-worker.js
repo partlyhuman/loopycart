@@ -27,8 +27,9 @@ async function fetchCached(request) {
 
     // Offline from cache
     const cache = await caches.open(version);
-    const response = await cache.match(request);
-    // console.log(`Fetching ${request.url} from offline cache...`);
+    const response = await cache.match(request, {ignoreMethod: true, ignoreSearch: true, ignoreVary: true});
+    // console.log('Cache version', version, cache, await cache.keys());
+    // console.log('Offline', request, response);
     return response || Response.error();
 }
 
