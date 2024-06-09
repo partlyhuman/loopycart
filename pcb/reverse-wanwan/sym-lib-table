@@ -1,8 +1,0 @@
-(sym_lib_table
-  (version 7)
-  (lib (name "LOOPY_Cart")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_Cart.kicad_sym")(options "")(descr ""))
-  (lib (name "LOOPY_Batt")(type "KiCad")(uri "${KIPRJMOD}/Libraries/CR-2032_HF1N/CR-2032_HF1N.kicad_sym")(options "")(descr ""))
-  (lib (name "LOOPY_Opamp")(type "KiCad")(uri "${KIPRJMOD}/Libraries/BA15218/BA15218F-E2.kicad_sym")(options "")(descr ""))
-  (lib (name "LOOPY_PCM")(type "KiCad")(uri "${KIPRJMOD}/Libraries/LOOPY_PCM.kicad_sym")(options "")(descr ""))
-  (lib (name "TC7W139F")(type "KiCad")(uri "${KIPRJMOD}/Libraries/TC7W139F.kicad_sym")(options "")(descr ""))
-)

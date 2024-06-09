@@ -1,9 +1,0 @@
-EESchema-DOCLIB  Version 2.0
-#
-$CMP BA15218F-E2
-D ROHM - BA15218F-E2 - Operational Amplifier, 2 Amplifier, 10 MHz, 3 V/s, 4V to 32V, +/- 2V to +/- 16V, SOP, 8 Pins
-K
-F https://componentsearchengine.com/Datasheets/2/BA15218F-E2.pdf
-$ENDCMP
-#
-#End Doc Library
