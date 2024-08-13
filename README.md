@@ -1,10 +1,12 @@
 # the Floopy Drive 💕
 
-This is a flashcart/devcart for the Casio Loopy. See the [User's Guide](https://github.com/partlyhuman/loopycart/wiki)!
+This is a flashcart/devcart for the Casio Loopy. 
 
-Pre-built carts available on [loopy.land/shop](https://loopy.land/shop)!
+[☕️ Pre-built carts shipping worldwide on shop.loopy.land](https://shop.loopy.land/)
 
-[![Introducing the Floopy Drive (Youtube)](http://img.youtube.com/vi/_Q8cJwyDRfA/0.jpg)](http://www.youtube.com/watch?v=_Q8cJwyDRfA "Introducing the Floopy Drive")
+[📖 User's Guide](https://github.com/partlyhuman/loopycart/wiki)
+
+[![YouTube](http://img.youtube.com/vi/_Q8cJwyDRfA/0.jpg)<br>📺 Introductory Video](http://www.youtube.com/watch?v=_Q8cJwyDRfA)
 
 To help find your way around:
 
@@ -18,12 +20,14 @@ To help find your way around:
 
 Related repositories:
 
-* [OSCR](https://github.com/sanni/cartreader) — I contributed a Casio Loopy adapter and code to the Open Source Cartridge Dumper, as well as a [makeshift adapter](https://github.com/partlyhuman/cartreader/tree/loopy-adapter-makeshift) that doesn't require an original cart connector
-* [Loopy-Tools](https://github.com/kasamikona/Loopy-Tools) — a treasure trove of documentation and tooling around the Loopy
-* [LoopyMSE](https://github.com/PSI-Rockin/LoopyMSE) — an open-source cross-platform Loopy emulator
+* [OSCR](https://github.com/sanni/cartreader) — I contributed a Casio Loopy adapter and code to the Open Source Cartridge Dumper, as well as a [makeshift adapter](https://github.com/sanni/cartreader/discussions/354#discussioncomment-10103848) that doesn't require an original cart connector
+* [Loopy-Tools](https://github.com/kasamikona/Loopy-Tools) — a treasure trove of documentation and tooling around the Loopy by @kasamikona
+* [Loopy-Schematics](https://github.com/kasamikona/Loopy-Schematics) - Schematics for various parts of, and accessories for, the Casio Loopy by @kasamikona
+* [LoopyMSE](https://github.com/PSI-Rockin/LoopyMSE) — an open-source cross-platform Loopy emulator by @PSI-Rockin
 
 Associated URLs
 * [loopy.land](https://loopy.land/) Home
+* [shop.loopy.land](https://shop.loopy.land/) Shop pre-made Floopy Drives
 * [f.loopy.land](https://f.loopy.land/) Flashing interface (not very useful without a Floopy Drive attached.)
 * [wan.loopy.land](https://wan.loopy.land/) Save trainer for Wanwan Aijou Monogatari
 
