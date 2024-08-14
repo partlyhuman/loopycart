@@ -2,7 +2,7 @@
 
 This is a flashcart/devcart for the Casio Loopy. 
 
-[☕️ Pre-built carts shipping worldwide on shop.loopy.land](https://shop.loopy.land/)
+[☕️ Pre-built carts shipping worldwide on loopy.land/shop](https://loopy.land/shop)
 
 [📖 User's Guide](https://github.com/partlyhuman/loopycart/wiki)
 
@@ -24,12 +24,6 @@ Related repositories:
 * [Loopy-Tools](https://github.com/kasamikona/Loopy-Tools) — a treasure trove of documentation and tooling around the Loopy by @kasamikona
 * [Loopy-Schematics](https://github.com/kasamikona/Loopy-Schematics) - Schematics for various parts of, and accessories for, the Casio Loopy by @kasamikona
 * [LoopyMSE](https://github.com/PSI-Rockin/LoopyMSE) — an open-source cross-platform Loopy emulator by @PSI-Rockin
-
-Associated URLs
-* [loopy.land](https://loopy.land/) Home
-* [shop.loopy.land](https://shop.loopy.land/) Shop pre-made Floopy Drives
-* [f.loopy.land](https://f.loopy.land/) Flashing interface (not very useful without a Floopy Drive attached.)
-* [wan.loopy.land](https://wan.loopy.land/) Save trainer for Wanwan Aijou Monogatari
 
 ### Contributors! 💕
 
