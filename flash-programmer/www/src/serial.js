@@ -93,10 +93,9 @@ export class Port {
                 this.onReceiveError(error);
             }
         }
+
         // This could help avoid deadlock between initial read and write
-        // TODO this can become \r when everyone's upgraded to '82c4a64'
-        // await this.send("".padEnd(BUFSIZE, "\r"));
-        await this.send("D");
+        await this.send("".padEnd(BUFSIZE, "\r"));
         // don't await, we're ready to go as soon as this returns
         readLoop().then();
     }
